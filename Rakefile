@@ -1,5 +1,3 @@
-Rake.application.rake_require 'oedipus_lex'
-
-task :lexer  => 'lib/lexer.rb'
-task :parser => :lexer # Plus appropriate parser rules/deps.
-task :test   => :parser
+task :lexer do
+  `rex lib/flecha_lexer.rex -o lib/flecha_lexer.rb`
+end
