@@ -248,4 +248,40 @@ describe 'Flecha Reader' do
 
     include_examples 'se genera un token', :NOT
   end
+
+  context 'cuando hay una igualdad' do
+    let(:string) { '==' }
+
+    include_examples 'se genera un token', :EQ
+  end
+
+  context 'cuando hay una desigualdad' do
+    let(:string) { '!=' }
+
+    include_examples 'se genera un token', :NE
+  end
+
+  context 'cuando hay una comparación por mayor o igual' do
+    let(:string) { '>=' }
+
+    include_examples 'se genera un token', :GE
+  end
+
+  context 'cuando hay una comparación por menor o igual' do
+    let(:string) { '<=' }
+
+    include_examples 'se genera un token', :LE
+  end
+
+  context 'cuando hay una comparación por mayor estricto' do
+    let(:string) { '>' }
+
+    include_examples 'se genera un token', :GT
+  end
+
+  context 'cuando hay una comparación por menor estricto' do
+    let(:string) { '<' }
+
+    include_examples 'se genera un token', :LT
+  end
 end

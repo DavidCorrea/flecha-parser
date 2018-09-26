@@ -61,6 +61,24 @@ class FlechaLexer < RLTK::Lexer
   # Negación
   rule(/!/) { :NOT }
 
+  # Igualdad
+  rule(/==/) { :EQ }
+
+  # Desigualdad
+  rule(/!=/) { :NE }
+
+  # Mayor o igual
+  rule(/>=/) { :GE }
+
+  # Menor o igual
+  rule(/<=/) { :LE }
+
+  # Mayor estricto
+  rule(/>/) { :GT }
+
+  # Menor estricto
+  rule(/</) { :LT }
+
   # Variables, constantes y funciones
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
 
