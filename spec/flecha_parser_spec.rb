@@ -68,42 +68,46 @@ describe 'Flecha Reader' do
   end
 
   context 'cuando hay una constante de caracter' do
-    let(:string) { "'constante'" }
+    let(:string) { "'#{constante_de_caracter}'" }
 
-    include_examples 'se genera un token', :CHAR
+    context 'y contiene letras o números' do
+      let(:constante_de_caracter) { 'constante' }
+
+      include_examples 'se genera un token', :CHAR
+    end
 
     context 'y contiene una secuencia de escape de comilla simple' do
-      let(:string) { "'\\''" }
+      let(:constante_de_caracter) { "\\'" }
 
       include_examples 'se genera un token', :CHAR
     end
 
     context 'y contiene una secuencia de escape de comilla doble' do
-      let(:string) { "'#{'\"'}'" } # ...
+      let(:constante_de_caracter) { '\\"' }
 
       include_examples 'se genera un token', :CHAR
     end
 
     context 'y contiene una secuencia de escape de contrabarra' do
-      let(:string) { "'\\'" }
+      let(:constante_de_caracter) { '\\' }
 
       include_examples 'se genera un token', :CHAR
     end
 
     context 'y contiene una secuencia de escape de tab' do
-      let(:string) { "'\\t'" }
+      let(:constante_de_caracter) { '\\t' }
 
       include_examples 'se genera un token', :CHAR
     end
 
     context 'y contiene una secuencia de escape de salto de linea' do
-      let(:string) { "'\\n'" }
+      let(:constante_de_caracter) { '\\n' }
 
       include_examples 'se genera un token', :CHAR
     end
 
     context 'y contiene una secuencia de escape de retorno de carro' do
-      let(:string) { "'\\r'" }
+      let(:constante_de_caracter) { '\\r' }
 
       include_examples 'se genera un token', :CHAR
     end
