@@ -144,6 +144,12 @@ describe 'Flecha Reader' do
       include_examples 'se genera un token', :STRING
     end
 
+    context 'sin contenido' do
+      let(:contenido) { '' }
+
+      include_examples 'se genera un token', :STRING
+    end
+
     include_examples 'secuencias de escape generan un token', :STRING
   end
 
