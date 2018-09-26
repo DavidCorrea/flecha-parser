@@ -7,6 +7,30 @@ class FlechaLexer < RLTK::Lexer
   # Comentarios
   rule(/--.*\n/)
 
+  # Definiciones. ¿Esta bien ponerlo antes que LOWERID?
+  rule(/def/) { :DEF }
+
+  # Alternativa Condicional - if
+  rule(/if/) { :IF }
+
+  # Alternativa Condicional - then
+  rule(/then/) { :THEN }
+
+  # Alternativa Condicional - elif
+  rule(/elif/) { :ELIF }
+
+  # Alternativa Condicional - else
+  rule(/else/) { :ELSE }
+
+  # Pattern Matching
+  rule(/case/) { :CASE }
+
+  # Declaración Local - let
+  rule(/let/) { :LET }
+
+  # Declaración Local - in
+  rule(/in/) { :IN }
+
   # Variables, constantes y funciones.
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
 

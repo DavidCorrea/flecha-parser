@@ -141,5 +141,51 @@ describe 'Flecha Reader' do
     include_examples 'secuencias de escape generan un token', :STRING
   end
 
-  
+  context 'cuando hay una definición' do
+    let(:string) { 'def' }
+
+    include_examples 'se genera un token', :DEF
+  end
+
+  context 'cuando hay una alternativa condicional if' do
+    let(:string) { 'if' }
+
+    include_examples 'se genera un token', :IF
+  end
+
+  context 'cuando hay una alternativa condicional then' do
+    let(:string) { 'then' }
+
+    include_examples 'se genera un token', :THEN
+  end
+
+  context 'cuando hay una alternativa condicional elif' do
+    let(:string) { 'elif' }
+
+    include_examples 'se genera un token', :ELIF
+  end
+
+  context 'cuando hay una alternativa condicional else' do
+    let(:string) { 'else' }
+
+    include_examples 'se genera un token', :ELSE
+  end
+
+  context 'cuando hay pattern matching' do
+    let(:string) { 'case' }
+
+    include_examples 'se genera un token', :CASE
+  end
+
+  context 'cuando hay una declaración local let' do
+    let(:string) { 'let' }
+
+    include_examples 'se genera un token', :LET
+  end
+
+  context 'cuando hay una declaración local in' do
+    let(:string) { 'in' }
+
+    include_examples 'se genera un token', :IN
+  end
 end
