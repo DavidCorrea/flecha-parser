@@ -19,6 +19,50 @@ describe 'Flecha Reader' do
     end
   end
 
+  shared_examples 'se levanta un error de sintaxis' do
+    it 'se levanta un error de sintaxis' do
+      expect { FlechaLexer.new.tokenize(string) }.to raise_error(RLTK::LexingError)
+    end
+  end
+
+  shared_examples 'secuencias de escape generan un token' do |token|
+    context 'secuencia de escape de comilla simple' do
+      let(:contenido) { "\\'" }
+
+      include_examples 'se genera un token', token
+    end
+
+    context 'secuencia de escape de comilla doble' do
+      let(:contenido) { '\\"' }
+
+      include_examples 'se genera un token', token
+    end
+
+    context 'secuencia de escape de contrabarra' do
+      let(:contenido) { '\\' }
+
+      include_examples 'se genera un token', token
+    end
+
+    context 'secuencia de escape de tab' do
+      let(:contenido) { '\\t' }
+
+      include_examples 'se genera un token', token
+    end
+
+    context 'secuencia de escape de salto de linea' do
+      let(:contenido) { '\\n' }
+
+      include_examples 'se genera un token', token
+    end
+
+    context 'secuencia de escape de retorno de carro' do
+      let(:contenido) { '\\r' }
+
+      include_examples 'se genera un token', token
+    end
+  end
+
   context 'cuando hay espacios vacios' do
     let(:string) { ' ' }
 
@@ -37,7 +81,7 @@ describe 'Flecha Reader' do
     include_examples 'no se genera ningún token'
   end
 
-  context 'cuando hay saltos de linea' do
+  context 'cuando hay retornos de carro' do
     let(:string) { "\r" }
 
     include_examples 'no se genera ningún token'
@@ -68,48 +112,34 @@ describe 'Flecha Reader' do
   end
 
   context 'cuando hay una constante de caracter' do
-    let(:string) { "'#{constante_de_caracter}'" }
+    let(:string) { "'#{contenido}'" }
 
-    context 'y contiene letras o números' do
-      let(:constante_de_caracter) { 'constante' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'y contiene una secuencia de escape de comilla simple' do
-      let(:constante_de_caracter) { "\\'" }
+    context 'un caracter o número' do
+      let(:contenido) { 'u' }
 
       include_examples 'se genera un token', :CHAR
     end
 
-    context 'y contiene una secuencia de escape de comilla doble' do
-      let(:constante_de_caracter) { '\\"' }
+    context 'secuencia de caracteres' do
+      let(:contenido) { 'varios' }
 
-      include_examples 'se genera un token', :CHAR
+      include_examples 'se levanta un error de sintaxis'
     end
 
-    context 'y contiene una secuencia de escape de contrabarra' do
-      let(:constante_de_caracter) { '\\' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'y contiene una secuencia de escape de tab' do
-      let(:constante_de_caracter) { '\\t' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'y contiene una secuencia de escape de salto de linea' do
-      let(:constante_de_caracter) { '\\n' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'y contiene una secuencia de escape de retorno de carro' do
-      let(:constante_de_caracter) { '\\r' }
-
-      include_examples 'se genera un token', :CHAR
-    end
+    include_examples 'secuencias de escape generan un token', :CHAR
   end
+
+  context 'cuando hay una constante de string' do
+    let(:string) { "\"#{contenido}\"" }
+
+    context 'secuencia de caracteres' do
+      let(:contenido) { 'secuencia de caracteres' }
+
+      include_examples 'se genera un token', :STRING
+    end
+
+    include_examples 'secuencias de escape generan un token', :STRING
+  end
+
+  
 end

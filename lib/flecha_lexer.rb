@@ -17,7 +17,10 @@ class FlechaLexer < RLTK::Lexer
   rule(/[0-9]+/) { :NUMBER }
 
   # Constante de caracter.
-  rule(/'([_a-zA-Z0-9]+|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
+  rule(/'([_a-zA-Z0-9]|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
+
+  # Constante de string.
+  rule(/"([_a-zA-Z0-9 ]+|\\'|\\"|\\|\\t|\\n|\\r)"/) { :STRING }
 
   def tokenize(string)
     tokens = self.lex(string)
