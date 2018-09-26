@@ -1,11 +1,23 @@
 require 'rltk/lexer'
 
 class FlechaLexer < RLTK::Lexer
-  rule(/\s/)     # Espacios.
-  rule(/--.*\n/) # Comentarios
+  # Espacios.
+  rule(/\s/)
 
-  rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID } # Variables, constantes y funciones.
-  rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID } # Constructores.
+  # Comentarios
+  rule(/--.*\n/)
+
+  # Variables, constantes y funciones.
+  rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
+
+  # Constructores.
+  rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
+
+  # Constante numérica.
+  rule(/[0-9]+/) { :NUMBER }
+
+  # Constante de caracter.
+  rule(/'([_a-zA-Z0-9]+|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
 
   def tokenize(string)
     tokens = self.lex(string)

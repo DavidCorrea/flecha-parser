@@ -3,7 +3,7 @@ require_relative '../lib/flecha_lexer'
 
 describe 'Flecha Reader' do
   shared_examples 'no se genera ningún token' do
-    it 'no devuelve ningún token' do
+    it 'no se genera ningún token' do
       tokens = FlechaLexer.new.tokenize(string)
 
       expect(tokens.size).to eq(0)
@@ -11,7 +11,7 @@ describe 'Flecha Reader' do
   end
 
   shared_examples 'se genera un token' do | token |
-    it 'no devuelve ningún token' do
+    it 'se genera un token' do
       tokens = FlechaLexer.new.tokenize(string)
 
       expect(tokens.size).to eq(1)
@@ -59,5 +59,53 @@ describe 'Flecha Reader' do
     let(:string) { 'Identificador' }
 
     include_examples 'se genera un token', :UPPERID
+  end
+
+  context 'cuando hay una constante numérica' do
+    let(:string) { '123456789' }
+
+    include_examples 'se genera un token', :NUMBER
+  end
+
+  context 'cuando hay una constante de caracter' do
+    let(:string) { "'constante'" }
+
+    include_examples 'se genera un token', :CHAR
+
+    context 'y contiene una secuencia de escape de comilla simple' do
+      let(:string) { "'\\''" }
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'y contiene una secuencia de escape de comilla doble' do
+      let(:string) { "'#{'\"'}'" } # ...
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'y contiene una secuencia de escape de contrabarra' do
+      let(:string) { "'\\'" }
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'y contiene una secuencia de escape de tab' do
+      let(:string) { "'\\t'" }
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'y contiene una secuencia de escape de salto de linea' do
+      let(:string) { "'\\n'" }
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'y contiene una secuencia de escape de retorno de carro' do
+      let(:string) { "'\\r'" }
+
+      include_examples 'se genera un token', :CHAR
+    end
   end
 end
