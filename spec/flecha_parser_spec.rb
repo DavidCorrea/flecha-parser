@@ -39,7 +39,7 @@ describe 'Flecha Reader' do
     end
 
     context 'secuencia de escape de contrabarra' do
-      let(:contenido) { '\\' }
+      let(:contenido) { '\\\\' }
 
       include_examples 'se genera un token', token
     end
@@ -114,8 +114,14 @@ describe 'Flecha Reader' do
   context 'cuando hay una constante de caracter' do
     let(:string) { "'#{contenido}'" }
 
-    context 'un caracter o número' do
+    context 'con un caracter o número' do
       let(:contenido) { 'u' }
+
+      include_examples 'se genera un token', :CHAR
+    end
+
+    context 'con un vacio' do
+      let(:contenido) { ' ' }
 
       include_examples 'se genera un token', :CHAR
     end

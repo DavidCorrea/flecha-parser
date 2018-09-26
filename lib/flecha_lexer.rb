@@ -58,14 +58,24 @@ class FlechaLexer < RLTK::Lexer
   rule(/[0-9]+/) { :NUMBER }
 
   # Constantes de caracter
-  rule(/'([_a-zA-Z0-9]|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
+  rule(/'([_a-zA-Z0-9 ]|\\'|\\"|\\\\|\\t|\\n|\\r)'/) { :CHAR }
 
   # Constantes de string
-  rule(/"([_a-zA-Z0-9 ]+|\\'|\\"|\\|\\t|\\n|\\r)"/) { :STRING }
+  rule(/"([_a-zA-Z0-9 ]+|\\'|\\"|\\\\|\\t|\\n|\\r)"/) { :STRING }
 
   def tokenize(string)
     tokens = self.lex(string)
+    remove_eos_token(tokens)
+  end
+
+  def tokenize_from_file(filename)
+    tokens = self.lex_file(filename)
+    remove_eos_token(tokens)
+  end
+
+  private
+
+  def remove_eos_token(tokens)
     tokens.delete_if { |token| token.type.eql? :EOS }
-    tokens
   end
 end
