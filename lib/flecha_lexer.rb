@@ -79,6 +79,21 @@ class FlechaLexer < RLTK::Lexer
   # Menor estricto
   rule(/</) { :LT }
 
+  # Suma
+  rule(/\+/) { :PLUS }
+
+  # Resta
+  rule(/-/) { :MINUS }
+
+  # Multiplicación
+  rule(/\*/) { :TIMES }
+
+  # División
+  rule(/\//) { :DIV }
+
+  # Resto
+  rule(/%/) { :MOD }
+
   # Variables, constantes y funciones
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
 

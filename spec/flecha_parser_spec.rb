@@ -284,4 +284,34 @@ describe 'Flecha Reader' do
 
     include_examples 'se genera un token', :LT
   end
+
+  context 'cuando hay una suma' do
+    let(:string) { '+' }
+
+    include_examples 'se genera un token', :PLUS
+  end
+
+  context 'cuando hay una resta' do
+    let(:string) { '-' }
+
+    include_examples 'se genera un token', :MINUS
+  end
+
+  context 'cuando hay una multiplicación' do
+    let(:string) { '*' }
+
+    include_examples 'se genera un token', :TIMES
+  end
+
+  context 'cuando hay una división' do
+    let(:string) { '/' }
+
+    include_examples 'se genera un token', :DIV
+  end
+
+  context 'cuando hay un resto' do
+    let(:string) { '%' }
+
+    include_examples 'se genera un token', :MOD
+  end
 end
