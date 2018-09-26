@@ -230,4 +230,22 @@ describe 'Flecha Reader' do
 
     include_examples 'se genera un token', :ARROW
   end
+
+  context 'cuando hay una conjunción' do
+    let(:string) { '&&' }
+
+    include_examples 'se genera un token', :AND
+  end
+
+  context 'cuando hay una disyunción' do
+    let(:string) { '||' }
+
+    include_examples 'se genera un token', :OR
+  end
+
+  context 'cuando hay una negación' do
+    let(:string) { '!' }
+
+    include_examples 'se genera un token', :NOT
+  end
 end

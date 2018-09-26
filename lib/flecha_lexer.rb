@@ -52,6 +52,15 @@ class FlechaLexer < RLTK::Lexer
   # Declaración de rama de un case
   rule(/\|/) { :PIPE }
 
+  # Conjunción
+  rule(/&&/) { :AND }
+
+  # Disyunción
+  rule(/\|\|/) { :OR }
+
+  # Negación
+  rule(/!/) { :NOT }
+
   # Variables, constantes y funciones
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
 
