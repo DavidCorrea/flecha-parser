@@ -1,112 +1,66 @@
 require 'rltk/lexer'
 
 class FlechaLexer < RLTK::Lexer
-  # Espacios
+  # Blancos y Comentarios
   rule(/\s/)
-
-  # Comentarios
   rule(/--.*\n/)
 
-  # Definiciones - ¿Esta bien ponerlo antes que LOWERID?
+  # Definiciones
   rule(/def/) { :DEF }
 
-  # Alternativa Condicional - if
+  # Alternativa Condicional
   rule(/if/) { :IF }
-
-  # Alternativa Condicional - then
   rule(/then/) { :THEN }
-
-  # Alternativa Condicional - elif
   rule(/elif/) { :ELIF }
-
-  # Alternativa Condicional - else
   rule(/else/) { :ELSE }
 
   # Pattern Matching
   rule(/case/) { :CASE }
 
-  # Declaración Local - let
+  # Declaración Local
   rule(/let/) { :LET }
-
-  # Declaración Local - in
   rule(/in/) { :IN }
 
-  # Asignación
+  # Delimitadores
   rule(/=/) { :DEFEQ }
-
-  # Secuenciación
   rule(/;/) { :SEMICOLON }
-
-  # Comienzo de agrupación de expresiones
   rule(/\(/) { :LPAREN }
-
-  # Final de agrupación de expresiones
   rule(/\)/) { :RPAREN }
-
-  # Declaración de función anónima
   rule(/\\/) { :LAMBDA }
-
-  # Declaración de cuerpo de función anónima
   rule(/->/) { :ARROW }
-
-  # Declaración de rama de un case
   rule(/\|/) { :PIPE }
 
-  # Conjunción
+  # Operadores lógicos
   rule(/&&/) { :AND }
-
-  # Disyunción
   rule(/\|\|/) { :OR }
-
-  # Negación
   rule(/!/) { :NOT }
 
-  # Igualdad
+  # Operadores relacionales
   rule(/==/) { :EQ }
-
-  # Desigualdad
   rule(/!=/) { :NE }
-
-  # Mayor o igual
   rule(/>=/) { :GE }
-
-  # Menor o igual
   rule(/<=/) { :LE }
-
-  # Mayor estricto
   rule(/>/) { :GT }
-
-  # Menor estricto
   rule(/</) { :LT }
 
-  # Suma
+  # Operadores aritméticos
   rule(/\+/) { :PLUS }
-
-  # Resta
   rule(/-/) { :MINUS }
-
-  # Multiplicación
   rule(/\*/) { :TIMES }
-
-  # División
   rule(/\//) { :DIV }
-
-  # Resto
   rule(/%/) { :MOD }
 
-  # Variables, constantes y funciones
+  # Identificadores
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
-
-  # Constructores
   rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
 
-  # Constante numérica
+  # Constantes numéricas
   rule(/[0-9]+/) { :NUMBER }
 
-  # Constante de caracter
+  # Constantes de caracter
   rule(/'([_a-zA-Z0-9]|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
 
-  # Constante de string
+  # Constantes de string
   rule(/"([_a-zA-Z0-9 ]+|\\'|\\"|\\|\\t|\\n|\\r)"/) { :STRING }
 
   def tokenize(string)
