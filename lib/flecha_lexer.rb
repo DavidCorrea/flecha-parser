@@ -1,13 +1,13 @@
 require 'rltk/lexer'
 
 class FlechaLexer < RLTK::Lexer
-  # Espacios.
+  # Espacios
   rule(/\s/)
 
   # Comentarios
   rule(/--.*\n/)
 
-  # Definiciones. ¿Esta bien ponerlo antes que LOWERID?
+  # Definiciones - ¿Esta bien ponerlo antes que LOWERID?
   rule(/def/) { :DEF }
 
   # Alternativa Condicional - if
@@ -31,19 +31,40 @@ class FlechaLexer < RLTK::Lexer
   # Declaración Local - in
   rule(/in/) { :IN }
 
-  # Variables, constantes y funciones.
+  # Asignación
+  rule(/=/) { :DEFEQ }
+
+  # Secuenciación
+  rule(/;/) { :SEMICOLON }
+
+  # Comienzo de agrupación de expresiones
+  rule(/\(/) { :LPAREN }
+
+  # Final de agrupación de expresiones
+  rule(/\)/) { :RPAREN }
+
+  # Declaración de función anónima
+  rule(/\\/) { :LAMBDA }
+
+  # Declaración de cuerpo de función anónima
+  rule(/->/) { :ARROW }
+
+  # Declaración de rama de un case
+  rule(/\|/) { :PIPE }
+
+  # Variables, constantes y funciones
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
 
-  # Constructores.
+  # Constructores
   rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
 
-  # Constante numérica.
+  # Constante numérica
   rule(/[0-9]+/) { :NUMBER }
 
-  # Constante de caracter.
+  # Constante de caracter
   rule(/'([_a-zA-Z0-9]|\\'|\\"|\\|\\t|\\n|\\r)'/) { :CHAR }
 
-  # Constante de string.
+  # Constante de string
   rule(/"([_a-zA-Z0-9 ]+|\\'|\\"|\\|\\t|\\n|\\r)"/) { :STRING }
 
   def tokenize(string)

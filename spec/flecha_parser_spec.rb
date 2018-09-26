@@ -188,4 +188,46 @@ describe 'Flecha Reader' do
 
     include_examples 'se genera un token', :IN
   end
+
+  context 'cuando hay una asignación' do
+    let(:string) { '=' }
+
+    include_examples 'se genera un token', :DEFEQ
+  end
+
+  context 'cuando hay una secuenciación' do
+    let(:string) { ';' }
+
+    include_examples 'se genera un token', :SEMICOLON
+  end
+
+  context 'cuando hay un comienzo de agrupación de expresiones' do
+    let(:string) { '(' }
+
+    include_examples 'se genera un token', :LPAREN
+  end
+
+  context 'cuando hay un final de agrupación de expresiones' do
+    let(:string) { ')' }
+
+    include_examples 'se genera un token', :RPAREN
+  end
+
+  context 'cuando hay una definición de función anónima' do
+    let(:string) { '\\' }
+
+    include_examples 'se genera un token', :LAMBDA
+  end
+
+  context 'cuando hay una rama de un case' do
+    let(:string) { '|' }
+
+    include_examples 'se genera un token', :PIPE
+  end
+
+  context 'cuando hay una definición del cuerpo de una función anónima' do
+    let(:string) { '->' }
+
+    include_examples 'se genera un token', :ARROW
+  end
 end
