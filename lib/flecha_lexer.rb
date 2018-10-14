@@ -62,20 +62,4 @@ class FlechaLexer < RLTK::Lexer
 
   # Constantes de string
   rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { :STRING }
-
-  def tokenize(string)
-    tokens = self.lex(string)
-    remove_eos_token(tokens)
-  end
-
-  def tokenize_from_file(filename)
-    tokens = self.lex_file(filename)
-    remove_eos_token(tokens)
-  end
-
-  private
-
-  def remove_eos_token(tokens)
-    tokens.delete_if { |token| token.type.eql? :EOS }
-  end
 end
