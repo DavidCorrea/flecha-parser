@@ -55,10 +55,12 @@ class FlechaLexer < RLTK::Lexer
   rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
 
   # Constantes numéricas
-  rule(/[0-9]+/) { :NUMBER }
+  rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
 
   # Constantes de caracter
-  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) { :CHAR }
+  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) do |character|
+    [:CHAR, character.gsub("'", '').ord]
+  end
 
   # Constantes de string
   rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { :STRING }
