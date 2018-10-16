@@ -52,10 +52,14 @@ class FlechaLexer < RLTK::Lexer
 
   # Identificadores
   rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
-  rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
+  rule(/[A-Z][_a-zA-Z0-9]*/) { |id| [:UPPERID, id] }
 
   # Constantes numéricas
   rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
+
+  # Booleanos
+  # rule(/True/) { :TRUE }
+  # rule(/False/) { :FALSE } Preguntar
 
   # Constantes de caracter
   rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) do |character|
