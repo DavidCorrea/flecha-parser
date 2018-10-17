@@ -121,12 +121,6 @@ describe 'Flecha Lexer' do
       include_examples 'se genera un token', :CHAR
     end
 
-    context 'con un vacio' do
-      let(:contenido) { ' ' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
     context 'secuencia de caracteres' do
       let(:contenido) { 'varios' }
 
@@ -326,5 +320,17 @@ describe 'Flecha Lexer' do
     let(:string) { '%' }
 
     include_examples 'se genera un token', :MOD
+  end
+
+  context 'paréntesis izquierdo' do
+    let(:string) { '(' }
+
+    include_examples 'se genera un token', :LPAREN
+  end
+
+  context 'paréntesis derecho' do
+    let(:string) { ')' }
+
+    include_examples 'se genera un token', :RPAREN
   end
 end
