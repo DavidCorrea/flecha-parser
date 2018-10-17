@@ -23,6 +23,7 @@ describe FlechaParser do
   it_behaves_like 'parsea la expresión', '4 * 12', a: ["ExprApply", ["ExprApply", %w(ExprVar MUL), ["ExprNumber", 4]], ["ExprNumber", 12]]
   it_behaves_like 'parsea la expresión', '12 / 4', a: ["ExprApply", ["ExprApply", %w(ExprVar DIV), ["ExprNumber", 12]], ["ExprNumber", 4]]
   it_behaves_like 'parsea la expresión', '20 % 5', a: ["ExprApply", ["ExprApply", %w(ExprVar MOD), ["ExprNumber", 20]], ["ExprNumber", 5]]
+  it_behaves_like 'parsea la expresión', '-5',     a: ["ExprApply", %w(ExprVar UMINUS), ["ExprNumber", 5]]
 
   it_behaves_like 'parsea la expresión', 'True || False', a: ["ExprApply", ["ExprApply", %w(ExprVar OR), ["ExprConstructor", 'True']], ["ExprConstructor", 'False']]
   it_behaves_like 'parsea la expresión', 'True && False', a: ["ExprApply", ["ExprApply", %w(ExprVar AND), ["ExprConstructor", 'True']], ["ExprConstructor", 'False']]

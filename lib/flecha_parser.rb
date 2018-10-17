@@ -33,6 +33,7 @@ class FlechaParser < RLTK::Parser
     clause('e TIMES e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar MUL), n], m]  }
     clause('e DIV e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar DIV), n], m]  }
     clause('e MOD e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar MOD), n], m]  }
+    clause('MINUS e') { |_op, n| ['ExprApply', %w(ExprVar UMINUS), n] }
 
     clause('e OR e') { |b1, _op, b2| ['ExprApply', ['ExprApply', %w(ExprVar OR), b1], b2] }
     clause('e AND e') { |b1, _op, b2| ['ExprApply', ['ExprApply', %w(ExprVar AND), b1], b2] }
