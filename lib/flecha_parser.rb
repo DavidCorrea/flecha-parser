@@ -49,9 +49,7 @@ class FlechaParser < RLTK::Parser
   end
 
   production(:ramas_else) do
-    clause('ELSE expresion_interna') do |_, expresion_interna|
-      ['CaseBranch', 'False', [], expresion_interna]
-    end
+    clause('ELSE expresion_interna') { |_, expresion_interna| ['CaseBranch', 'False', [], expresion_interna] }
 
     clause('ELIF expresion_interna THEN expresion_interna ramas_else') do |_, condicion, _, bloque_then, ramas_else|
       ['CaseBranch', 'False', [], ['ExprCase', condicion, [['CaseBranch', 'True', [], bloque_then], ramas_else]]]
@@ -77,19 +75,17 @@ class FlechaParser < RLTK::Parser
 
   production(:ramas_case) do
     clause('') { [] }
-    clause('ramas_case rama_case') { |ramas, rama| ramas + [rama] }
+    clause('rama_case ramas_case') { |rama, ramas| [rama] + ramas }
   end
 
   production(:rama_case) do
-    clause('PIPE UPPERID ARROW expresion_interna') do |_, constructor, _, expresion_interna|
-      ['CaseBranch', constructor, [], expresion_interna]
+    clause('PIPE UPPERID parametros ARROW expresion_interna') do |_a, constructor, params, _, expresion_interna|
+      ['CaseBranch', constructor, params, expresion_interna]
     end
   end
 
   production(:expresion_interna) do
-    clause('expresion_aplicacion') do |expresion_aplicacion|
-      expresion_aplicacion
-    end
+    clause('expresion_aplicacion') { |expresion_aplicacion| expresion_aplicacion }
 
     clause('expresion_interna operador_binario expresion_interna') do |expresion_interna_izquierda, operador_binario, expresion_interna_derecha|
       ['ExprApply', ['ExprApply', operador_binario, expresion_interna_izquierda], expresion_interna_derecha]
@@ -141,9 +137,7 @@ class FlechaParser < RLTK::Parser
   end
 
   production(:expresion_aplicacion) do
-    clause('expresion_atomica') do |expresion_atomica|
-      expresion_atomica
-    end
+    clause('expresion_atomica') { |expresion_atomica| expresion_atomica }
 
     clause('expresion_aplicacion expresion_atomica') do |expresion_aplicacion, expresion_atomica|
       ['ExprApply', expresion_aplicacion, expresion_atomica]

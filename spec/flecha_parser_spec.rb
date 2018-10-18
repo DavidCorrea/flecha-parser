@@ -275,4 +275,25 @@ describe FlechaParser do
       ]
     ]
   ]
+
+  it_behaves_like 'parsea', 'def null list =
+                               case list
+                               | Nil       -> True
+                               | Cons x xs -> False', a: [
+    ["Def", "null",
+     ["ExprLambda", "list",
+      ["ExprCase",
+       ["ExprVar", "list"],
+       [
+         ["CaseBranch", "Nil", [],
+          ["ExprConstructor", "True"]
+         ],
+         ["CaseBranch", "Cons", ["x", "xs"],
+          ["ExprConstructor", "False"]
+         ]
+       ]
+      ]
+     ]
+    ]
+  ]
 end
