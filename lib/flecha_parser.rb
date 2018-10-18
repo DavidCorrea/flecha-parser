@@ -4,52 +4,72 @@ class FlechaParser < RLTK::Parser
   left  :PLUS, :MINUS, :NE
   right :TIMES, :DIV, :MOD
 
-  production(:e) do
-    clause('NUMBER') { |number| ['ExprNumber', number] }
-    clause('CHAR')   { |character| ['ExprChar', character] }
-    clause('NUMCHAR')   { |number| ['ExprChar', number] }
-    clause('STRING') do |string|
-      operations = string.split("").reverse.map do |char|
-        ["ExprApply",
-          %w(ExprConstructor Cons),
-          ['ExprChar', char]
-        ]
-      end
-
-      result_base = %w(ExprConstructor Nil)
-      operations.each do |operation|
-        result_base = ["ExprApply", operation, result_base]
-      end
-
-      result_base
+  production(:expresion_case) do
+    clause('CASE expresion_interna ramas_case') do |_, expresion_interna, ramas_case|
+      ['ExprCase', expresion_interna, ramas_case]
     end
-    clause('UPPERID') { |id| ['ExprConstructor', id] }
-    clause('LOWERID') { |id| ['ExprVar', id] }
+  end
 
-    clause('NOT') { |_op| %w(ExprVar NOT) }
+  production(:ramas_case) do
+    clause('') { [] }
+    clause('ramas_case rama_case') { |ramas, rama| [rama] + ramas }
+  end
 
-    clause('e PLUS e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar ADD), n], m] }
-    clause('e MINUS e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar SUB), n], m]  }
-    clause('e TIMES e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar MUL), n], m]  }
-    clause('e DIV e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar DIV), n], m]  }
-    clause('e MOD e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar MOD), n], m]  }
-    clause('MINUS e') { |_op, n| ['ExprApply', %w(ExprVar UMINUS), n] }
+  production(:rama_case) do
+    clause('PIPE UPPERID ARROW expresion_interna') do |_, constructor, _, expresion_interna|
+      ['CaseBranch', constructor, [], expresion_interna]
+    end
+  end
 
-    clause('e OR e') { |b1, _op, b2| ['ExprApply', ['ExprApply', %w(ExprVar OR), b1], b2] }
-    clause('e AND e') { |b1, _op, b2| ['ExprApply', ['ExprApply', %w(ExprVar AND), b1], b2] }
-    clause('NOT e') { |_op, b| ['ExprApply', %w(ExprVar NOT), b] }
+  production(:expresion_interna) do
+    clause('expresion_aplicacion') { |expresion_aplicacion| expresion_aplicacion }
 
-    clause('e NE e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar NE), n], m] }
-    clause('e EQ e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar EQ), n], m] }
+    clause('expresion_interna operador_binario expresion_interna') do | expresion_interna_l, operador_binario, expresion_interna_r|
+      ['ExprApply', ['ExprApply', operador_binario, expresion_interna_l], expresion_interna_r]
+    end
 
-    clause('e LE e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar LE), n], m] }
-    clause('e GE e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar GE), n], m] }
-    clause('e GT e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar GT), n], m] }
-    clause('e LT e') { |n, _op, m| ['ExprApply', ['ExprApply', %w(ExprVar LT), n], m] }
+    clause('operador_unario expresion_interna') do |operador_unario, expresion_interna|
+      ['ExprApply', operador_unario, expresion_interna]
+    end
+  end
 
-    clause('LPAREN e RPAREN') { |_lparen, e, _rparen| e }
+  production(:operador_binario) do
+    clause('AND')   { |_| %w'ExprVar AND' }
+    clause('OR')    { |_| %w'ExprVar OR' }
+    clause('EQ')    { |_| %w'ExprVar EQ' }
+    clause('NE')    { |_| %w'ExprVar NE' }
+    clause('GE')    { |_| %w'ExprVar GE' }
+    clause('LE')    { |_| %w'ExprVar LE' }
+    clause('GT')    { |_| %w'ExprVar GT' }
+    clause('LT')    { |_| %w'ExprVar LT' }
+    clause('PLUS')  { |_| %w'ExprVar ADD' }
+    clause('MINUS') { |_| %w'ExprVar SUB' }
+    clause('TIMES') { |_| %w'ExprVar MUL' }
+    clause('DIV')   { |_| %w'ExprVar DIV' }
+    clause('MOD')   { |_| %w'ExprVar MOD' }
+  end
 
-    clause('DEF e DEFEQ e') { |_def, name, _defeq, expr| ['Def', name[1], expr] }
+  production(:operador_unario) do
+    clause('NOT')   { |_| %w'ExprVar NOT' }
+    clause('MINUS') { |_| %w'ExprVar UMINUS' }
+  end
+
+  production(:expresion_atomica) do
+    clause('LOWERID') { |lower_id|  ['ExprVar', lower_id] }
+    clause('UPPERID') { |upper_id|  ['ExprConstructor', upper_id] }
+    clause('NUMBER')  { |number|    ['ExprNumber', number] }
+    clause('CHAR')    { |character| ['ExprChar', character] }
+    # clause('LPAREN expresion RPAREN') { |_, expresion, _| expresion }
+    clause('STRING') do |string|
+      string.split('').reverse.inject(%w(ExprConstructor Nil)) do | product, character |
+        ['ExprApply', ['ExprApply', %w(ExprConstructor Cons), ['ExprChar', character]], product]
+      end
+    end
+  end
+
+  production(:expresion_aplicacion) do
+    clause('expresion_atomica') { |expresion_atomica| expresion_atomica }
+    clause('expresion_aplicacion expresion_atomica') { |_expresion_aplicacion, expresion_atomica | ['ExprApply', expresion_atomica] }
   end
 
   finalize

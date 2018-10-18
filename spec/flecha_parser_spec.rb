@@ -36,9 +36,5 @@ describe FlechaParser do
   it_behaves_like 'parsea la expresión', '3 > 2', a: ["ExprApply", ["ExprApply", %w(ExprVar GT), ["ExprNumber", 3]], ["ExprNumber", 2]]
   it_behaves_like 'parsea la expresión', '3 < 2', a: ["ExprApply", ["ExprApply", %w(ExprVar LT), ["ExprNumber", 3]], ["ExprNumber", 2]]
 
-  it_behaves_like 'parsea la expresión', '(3 + 2) * 2', a: ["ExprApply", ["ExprApply", %w(ExprVar MUL), ["ExprApply", ["ExprApply", %w(ExprVar ADD), ["ExprNumber", 3]], ["ExprNumber", 2]]], ["ExprNumber", 2]]
-
-  it_behaves_like 'parsea la expresión', "'3'", a: ['ExprChar', 3]
-
-  it_behaves_like 'parsea la expresión', 'def variable = 2', a: ['Def', 'variable', ['ExprNumber', 2]]
+  it_behaves_like 'parsea la expresión', 'case x', a: ["ExprCase", ["ExprVar", "x"], []]
 end

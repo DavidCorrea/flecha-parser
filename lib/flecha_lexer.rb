@@ -55,20 +55,15 @@ class FlechaLexer < RLTK::Lexer
   rule(/[A-Z][_a-zA-Z0-9]*/) { |id| [:UPPERID, id] }
 
   # Constantes numéricas
-  rule(/(?!')([0-9]+)(?<!')/) { | number | [:NUMBER, number.to_i] }
+  rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
 
   # Booleanos
   # rule(/True/) { :TRUE }
   # rule(/False/) { :FALSE } Preguntar
 
   # Constantes de caracter
-  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|[a-z])'/) do |character|
-    [:CHAR, character.gsub("'", '').ord]
-  end
-  rule(/'([0-9]+)'/) do |character|
-    [:NUMCHAR, character.gsub("'", '').to_i]
-  end
+  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) { | character | [:CHAR, character.gsub("'", '').ord] }
 
   # Constantes de string
-  rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { |string| [:STRING, string.gsub('"', '')] }
+  rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { | string | [:STRING, string.gsub('"', '')] }
 end
