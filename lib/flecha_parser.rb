@@ -6,7 +6,7 @@ class FlechaParser < RLTK::Parser
   class Environment < Environment
     def generar_lambda(expresion, parametros)
       parametros.reverse.inject(expresion) do |result, parametro|
-        ["ExprLambda", parametro, result]
+        ['ExprLambda', parametro, result]
       end
     end
   end
@@ -17,19 +17,20 @@ class FlechaParser < RLTK::Parser
   end
 
   production(:definicion) do
-    clause('DEF LOWERID DEFEQ expresion') do |_d, lower_id, _df, expr|
-      ['Def', lower_id, expr]
+    clause('DEF LOWERID DEFEQ expresion') do |_, lower_id, _, expresion|
+      ['Def', lower_id, expresion]
     end
 
-    clause('DEF LOWERID parametros DEFEQ expresion') do |_d, lower_id, params, _df, expr|
-      ['Def', lower_id, generar_lambda(expr, params)]
+    clause('DEF LOWERID parametros DEFEQ expresion') do |_, lower_id, params, _, expresion|
+      ['Def', lower_id, generar_lambda(expresion, params)]
     end
   end
 
   production(:expresion) do
     clause('expresion_externa') { |expr| expr }
-    clause('expresion_externa SEMICOLON expresion') do |expr_externa, _semi, expresion|
-      ["ExprLet", "_", expr_externa, expresion]
+
+    clause('expresion_externa SEMICOLON expresion') do |expresion_externa, _, expresion|
+      ['ExprLet', '_', expresion_externa, expresion]
     end
   end
 
@@ -42,29 +43,30 @@ class FlechaParser < RLTK::Parser
   end
 
   production(:expresion_if) do
-    clause('IF expresion_interna THEN expresion_interna ramas_else') do |_, expr_1, _, expr_2, ramas_else|
-      ['ExprCase', expr_1, [['CaseBranch', 'True', [], expr_2], ramas_else]]
+    clause('IF expresion_interna THEN expresion_interna ramas_else') do |_, condicion, _, bloque_then, ramas_else|
+      ['ExprCase', condicion, [['CaseBranch', 'True', [], bloque_then], ramas_else]]
     end
   end
 
   production(:ramas_else) do
-    clause('ELSE expresion_interna') do |_else, expr|
-      ['CaseBranch', 'False', [], expr]
+    clause('ELSE expresion_interna') do |_, expresion_interna|
+      ['CaseBranch', 'False', [], expresion_interna]
     end
-    clause('ELIF expresion_interna THEN expresion_interna ramas_else') do |_, expr_1, _, expr_2, ramas_else|
-      ['CaseBranch', 'False', [], ['ExprCase', expr_1, [['CaseBranch', 'True', [], expr_2], ramas_else]]]
+
+    clause('ELIF expresion_interna THEN expresion_interna ramas_else') do |_, condicion, _, bloque_then, ramas_else|
+      ['CaseBranch', 'False', [], ['ExprCase', condicion, [['CaseBranch', 'True', [], bloque_then], ramas_else]]]
     end
   end
 
   production(:expresion_lambda) do
-    clause('LAMBDA parametros ARROW expresion_externa') do |_, parametros, _, expresion|
-      generar_lambda(expresion, parametros)
+    clause('LAMBDA parametros ARROW expresion_externa') do |_, parametros, _, expresion_externa|
+      generar_lambda(expresion_externa, parametros)
     end
   end
 
   production(:parametros) do
     clause('') { [] }
-    clause('LOWERID parametros') { |expr, params_list| [expr] + params_list }
+    clause('LOWERID parametros') { |parametro, parametros| [parametro] + parametros }
   end
 
   production(:expresion_case) do
@@ -89,8 +91,8 @@ class FlechaParser < RLTK::Parser
       expresion_aplicacion
     end
 
-    clause('expresion_interna operador_binario expresion_interna') do | expresion_interna_l, operador_binario, expresion_interna_r|
-      ['ExprApply', ['ExprApply', operador_binario, expresion_interna_l], expresion_interna_r]
+    clause('expresion_interna operador_binario expresion_interna') do |expresion_interna_izquierda, operador_binario, expresion_interna_derecha|
+      ['ExprApply', ['ExprApply', operador_binario, expresion_interna_izquierda], expresion_interna_derecha]
     end
 
     clause('operador_unario expresion_interna') do |operador_unario, expresion_interna|
@@ -99,8 +101,8 @@ class FlechaParser < RLTK::Parser
   end
 
   production(:expresion_let) do
-    clause('LET LOWERID DEFEQ expresion_interna IN expresion_externa') do |_, lower_id, _, expr_int, _, expr_ext|
-      ["ExprLet", lower_id, expr_int, expr_ext]
+    clause('LET LOWERID DEFEQ expresion_interna IN expresion_externa') do |_, lower_id, _, expresion_interna, _, expresion_externa|
+      ['ExprLet', lower_id, expresion_interna, expresion_externa]
     end
   end
 
@@ -132,8 +134,8 @@ class FlechaParser < RLTK::Parser
     clause('CHAR')    { |character| ['ExprChar', character] }
     clause('LPAREN expresion RPAREN') { |_, expresion, _| expresion }
     clause('STRING') do |string|
-      string.split('').reverse.inject(%w(ExprConstructor Nil)) do | product, character |
-        ['ExprApply', ['ExprApply', %w(ExprConstructor Cons), ['ExprChar', character.ord]], product]
+      string.split('').reverse.inject(%w(ExprConstructor Nil)) do |result, character|
+        ['ExprApply', ['ExprApply', %w(ExprConstructor Cons), ['ExprChar', character.ord]], result]
       end
     end
   end

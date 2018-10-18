@@ -57,10 +57,6 @@ class FlechaLexer < RLTK::Lexer
   # Constantes numéricas
   rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
 
-  # Booleanos
-  # rule(/True/) { :TRUE }
-  # rule(/False/) { :FALSE } Preguntar
-
   # Constantes de caracter
   rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) { | character | [:CHAR, character.gsub("'", '').ord] }
 
