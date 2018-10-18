@@ -58,8 +58,8 @@ class FlechaLexer < RLTK::Lexer
   rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
 
   # Constantes de caracter
-  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) { | character | [:CHAR, character.gsub("'", '').ord] }
+  rule(/'(\\"|\\\\|\s|\\t|\\n|\\r|[_a-zA-Z0-9])*'/) { | character | [:CHAR, character.gsub("'", '').ord] }
 
   # Constantes de string
-  rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { | string | [:STRING, string.gsub('"', '')] }
+  rule(/"(\\'|\\\\|\s|\\t|\\n|\\r|[_a-zA-Z0-9])*"/) { | string | [:STRING, string.gsub('"', '')] }
 end

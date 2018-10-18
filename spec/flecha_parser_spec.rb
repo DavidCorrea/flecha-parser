@@ -78,6 +78,73 @@ describe FlechaParser do
     ]
   ]
 
+  it_behaves_like 'parsea', 'def listaStrings =
+  Cons "" (Cons "a" (Cons "ab" (Cons "abc" Nil)))', a: [
+    ["Def", "listaStrings",
+     ["ExprApply",
+      ["ExprApply",
+       ["ExprConstructor", "Cons"],
+       ["ExprConstructor", "Nil"]
+      ],
+      ["ExprApply",
+       ["ExprApply",
+        ["ExprConstructor", "Cons"],
+        ["ExprApply",
+         ["ExprApply",
+          ["ExprConstructor", "Cons"],
+          ["ExprChar", 97]
+         ],
+         ["ExprConstructor", "Nil"]
+        ]
+       ],
+       ["ExprApply",
+        ["ExprApply",
+         ["ExprConstructor", "Cons"],
+         ["ExprApply",
+          ["ExprApply",
+           ["ExprConstructor", "Cons"],
+           ["ExprChar", 97]
+          ],
+          ["ExprApply",
+           ["ExprApply",
+            ["ExprConstructor", "Cons"],
+            ["ExprChar", 98]
+           ],
+           ["ExprConstructor", "Nil"]
+          ]
+         ]
+        ],
+        ["ExprApply",
+         ["ExprApply",
+          ["ExprConstructor", "Cons"],
+          ["ExprApply",
+           ["ExprApply",
+            ["ExprConstructor", "Cons"],
+            ["ExprChar", 97]
+           ],
+           ["ExprApply",
+            ["ExprApply",
+             ["ExprConstructor", "Cons"],
+             ["ExprChar", 98]
+            ],
+            ["ExprApply",
+             ["ExprApply",
+              ["ExprConstructor", "Cons"],
+              ["ExprChar", 99]
+             ],
+             ["ExprConstructor", "Nil"]
+            ]
+           ]
+          ]
+         ],
+         ["ExprConstructor", "Nil"]
+        ]
+       ]
+      ]
+     ]
+    ]
+  ]
+
   # Strings
 
   it_behaves_like 'parsea', 'def abc = "abc"', a: [
