@@ -245,6 +245,39 @@ describe FlechaParser do
     ]
   ]
 
+  it_behaves_like 'parsea', 'def t2 = if (let x = 1 in 2) then (let y w = 1 in 2) else (let z a b c = 1 in 2)', a: [
+    ["Def", "t2",
+     ["ExprCase",
+      ["ExprLet", "x",
+       ["ExprNumber", 1],
+       ["ExprNumber", 2]
+      ],
+      [
+        ["CaseBranch", "True", [],
+         ["ExprLet", "y",
+          ["ExprLambda", "w",
+           ["ExprNumber", 1]
+          ],
+          ["ExprNumber", 2]
+         ]
+        ],
+        ["CaseBranch", "False", [],
+         ["ExprLet", "z",
+          ["ExprLambda", "a",
+           ["ExprLambda", "b",
+            ["ExprLambda", "c",
+             ["ExprNumber", 1]
+            ]
+           ]
+          ],
+          ["ExprNumber", 2]
+         ]
+        ]
+      ]
+     ]
+    ]
+  ]
+
   # Lambdas
 
   it_behaves_like 'parsea', 'def t4 = \ x y -> y', a: [

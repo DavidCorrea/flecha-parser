@@ -100,6 +100,10 @@ class FlechaParser < RLTK::Parser
     clause('LET LOWERID DEFEQ expresion_interna IN expresion_externa') do |_, lower_id, _, expresion_interna, _, expresion_externa|
       ['ExprLet', lower_id, expresion_interna, expresion_externa]
     end
+
+    clause('LET LOWERID parametros DEFEQ expresion_interna IN expresion_externa') do |_, lower_id, params, _, expresion_interna, _, expresion_externa|
+      ['ExprLet', lower_id, generar_lambda(expresion_interna, params), expresion_externa]
+    end
   end
 
   production(:operador_binario) do
