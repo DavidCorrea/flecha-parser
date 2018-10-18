@@ -150,5 +150,5 @@ class FlechaParser < RLTK::Parser
     end
   end
 
-  finalize
+  finalize(use: 'parser.tbl')
 end
