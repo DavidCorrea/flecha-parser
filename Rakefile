@@ -1,20 +1,34 @@
 require_relative 'lib/flecha_lexer'
 require_relative 'lib/flecha_parser'
-require 'pp'
 require 'colorize'
 
-task :lex_test_file, [:test_filename] do |task, args|
-  pp "Lexing '#{args[:filename]}'..."
-  tokens = FlechaLexer.new.lex_file("spec/test_files/#{args[:filename]}.input")
-
-  pp tokens.map { |token| token.type }
+def info(output)
+  puts output.blue
 end
 
-task :parse_test_file, [:filename] do |task, args|
-  pp "Lexing '#{args[:filename]}'..."
+def success(output)
+  puts output.green
+end
+
+def warning(output)
+  puts output.red
+end
+
+def print_tokens(tokens)
+  puts tokens.map { |token| token.type }.to_s.gsub(' ', '').gsub("\n", '')
+end
+
+task :lex_test_file, [:filename] do |_, args|
+  info "Lexing '#{args[:filename]}'..."
+  tokens = FlechaLexer.new.lex_file("spec/test_files/#{args[:filename]}.input")
+  print_tokens(tokens)
+end
+
+task :parse_test_file, [:filename] do |_, args|
+  info "Lexing '#{args[:filename]}'..."
   tokens = FlechaLexer.new.lex_file("spec/test_files/#{args[:filename]}.input")
 
-  pp "Parsing '#{args[:filename]}'..."
+  info "Parsing '#{args[:filename]}'..."
   parse_result = FlechaParser.new.parse(tokens)
 
   print parse_result
@@ -23,22 +37,21 @@ task :parse_test_file, [:filename] do |task, args|
   result = parse_result.to_s.gsub(' ', '').gsub("\n", '')
 
   puts "\n"
-  puts result == expected ? 'Result matches expected'.green : 'Wrong result'.red
+  puts result == expected ? success('Result matches expected') : warning('Wrong result')
 end
 
-task :lex_file, [:path] do | task, args |
-  pp "Lexing file from '#{args[:path]}'..."
+task :lex_file, [:path] do |_, args|
+  info "Lexing file from '#{args[:path]}'..."
   tokens = FlechaLexer.new.lex_file(args[:path])
-
-  pp tokens.map { |token| token.type }
+  print_tokens(tokens)
 end
 
-task :parse_file, [:path] do | task, args |
-  pp "Lexing file from '#{args[:path]}'..."
+task :parse_file, [:path] do |_, args|
+  info "Lexing file from '#{args[:path]}'..."
   tokens = FlechaLexer.new.lex_file(args[:path])
 
-  pp "Parsing file from '#{args[:path]}'..."
+  info "Parsing file from '#{args[:path]}'..."
   parse_result = FlechaParser.new.parse(tokens)
 
-  pp parse_result
+  print parse_result
 end
