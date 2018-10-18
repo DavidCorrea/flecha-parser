@@ -1,25 +1,33 @@
 require 'rltk/parser'
 
 class FlechaParser < RLTK::Parser
-  left  :PLUS, :MINUS, :NE
-  right :TIMES, :DIV, :MOD
+  left :AND, :OR, :NE, :EQ, :GE, :LE, :GT, :LT, :PLUS, :MINUS,:TIMES, :DIV, :MOD
 
-  production(:expresion_case) do
-    clause('CASE expresion_interna ramas_case') do |_, expresion_interna, ramas_case|
-      ['ExprCase', expresion_interna, ramas_case]
-    end
-  end
+  # production(:expresion_case) do
+  #   clause('CASE expresion_interna ramas_case') do |_, expresion_interna, ramas_case|
+  #     ['ExprCase', expresion_interna, ramas_case]
+  #   end
+  # end
+  #
+  # production(:ramas_case) do
+  #   clause('') { [] }
+  #   clause('ramas_case rama_case') { |ramas, rama| [rama] + ramas }
+  # end
+  #
+  # production(:rama_case) do
+  #   clause('PIPE UPPERID ARROW expresion_interna') do |_, constructor, _, expresion_interna|
+  #     ['CaseBranch', constructor, [], expresion_interna]
+  #   end
+  # end
 
-  production(:ramas_case) do
-    clause('') { [] }
-    clause('ramas_case rama_case') { |ramas, rama| [rama] + ramas }
-  end
-
-  production(:rama_case) do
-    clause('PIPE UPPERID ARROW expresion_interna') do |_, constructor, _, expresion_interna|
-      ['CaseBranch', constructor, [], expresion_interna]
-    end
-  end
+  # production(:expresion_lambda) do
+  #   clause('LAMBDA parametros ARROW expresion_interna') { |_lambda, parametros, _arrow, expresion| ["ExprLambda", parametros, expresion] }
+  # end
+  #
+  # production(:parametros) do
+  #   clause('') { [] }
+  #   clause('expresion_atomica parametros') { |expr, params_list| expr + params_list }
+  # end
 
   production(:expresion_interna) do
     clause('expresion_aplicacion') { |expresion_aplicacion| expresion_aplicacion }
