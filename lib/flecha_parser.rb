@@ -1,7 +1,14 @@
 require 'rltk/parser'
 
 class FlechaParser < RLTK::Parser
-  left :AND, :OR, :NE, :EQ, :GE, :LE, :GT, :LT, :PLUS, :MINUS, :TIMES, :DIV, :MOD
+  left :OR
+  left :AND
+  right :NOT
+  left :EQ, :NE, :GE, :LE, :GT, :LT
+  left :PLUS, :MINUS
+  left :TIMES
+  left :DIV, :MOD
+  right :MINUS
 
   class Environment < Environment
     def generar_lambda(expresion, parametros)
@@ -148,5 +155,5 @@ class FlechaParser < RLTK::Parser
     end
   end
 
-  finalize(use: 'parser.tbl')
+  finalize
 end
