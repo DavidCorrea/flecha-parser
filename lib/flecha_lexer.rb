@@ -51,31 +51,15 @@ class FlechaLexer < RLTK::Lexer
   rule(/%/) { :MOD }
 
   # Identificadores
-  rule(/[a-z][_a-zA-Z0-9]*/) { :LOWERID }
-  rule(/[A-Z][_a-zA-Z0-9]*/) { :UPPERID }
+  rule(/[a-z][_a-zA-Z0-9]*/) { |id| [:LOWERID, id] }
+  rule(/[A-Z][_a-zA-Z0-9]*/) { |id| [:UPPERID, id] }
 
   # Constantes numéricas
-  rule(/[0-9]+/) { :NUMBER }
+  rule(/[0-9]+/) { | number | [:NUMBER, number.to_i] }
 
   # Constantes de caracter
-  rule(/'(\\'|\\"|\\\\|\\t|\\n|\\r|.)'/) { :CHAR }
+  rule(/'(\\"|\\'|\\\\|\s|\\t|\\n|\\r|[^'])'/) { | character | [:CHAR, character.gsub("'", '').ord] }
 
   # Constantes de string
-  rule(/"(\\'|\\"|\\\\|\\t|\\n|\\r|.*)"/) { :STRING }
-
-  def tokenize(string)
-    tokens = self.lex(string)
-    remove_eos_token(tokens)
-  end
-
-  def tokenize_from_file(filename)
-    tokens = self.lex_file(filename)
-    remove_eos_token(tokens)
-  end
-
-  private
-
-  def remove_eos_token(tokens)
-    tokens.delete_if { |token| token.type.eql? :EOS }
-  end
+  rule(/"(\\"|\\'|\\\\|\s|\\t|\\n|\\r|[^"])*"/) { | string | [:STRING, string.gsub('"', '')] }
 end

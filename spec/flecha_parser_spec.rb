@@ -1,329 +1,399 @@
 require 'spec_helper'
 require_relative '../lib/flecha_lexer'
+require_relative '../lib/flecha_parser'
 
-describe 'Flecha Reader' do
-  shared_examples 'no se genera ningún token' do
-    it 'no se genera ningún token' do
-      tokens = FlechaLexer.new.tokenize(string)
+describe FlechaParser do
+  let(:parser) { FlechaParser.new }
+  let(:lexer) { FlechaLexer.new }
 
-      expect(tokens.size).to eq(0)
+  shared_examples 'parsea' do |string, a:|
+    it do
+      tokens = lexer.lex(string)
+
+      expect(parser.parse(tokens)).to eq(a)
     end
   end
 
-  shared_examples 'se genera un token' do | token |
-    it 'se genera un token' do
-      tokens = FlechaLexer.new.tokenize(string)
-
-      expect(tokens.size).to eq(1)
-      expect(tokens.first.type).to eq(token)
-    end
-  end
-
-  shared_examples 'se levanta un error de sintaxis' do
-    it 'se levanta un error de sintaxis' do
-      expect { FlechaLexer.new.tokenize(string) }.to raise_error(RLTK::LexingError)
-    end
-  end
-
-  shared_examples 'secuencias de escape generan un token' do |token|
-    context 'secuencia de escape de comilla simple' do
-      let(:contenido) { "\\'" }
-
-      include_examples 'se genera un token', token
-    end
-
-    context 'secuencia de escape de comilla doble' do
-      let(:contenido) { '\\"' }
-
-      include_examples 'se genera un token', token
-    end
-
-    context 'secuencia de escape de contrabarra' do
-      let(:contenido) { '\\\\' }
-
-      include_examples 'se genera un token', token
-    end
-
-    context 'secuencia de escape de tab' do
-      let(:contenido) { '\\t' }
-
-      include_examples 'se genera un token', token
-    end
-
-    context 'secuencia de escape de salto de linea' do
-      let(:contenido) { '\\n' }
-
-      include_examples 'se genera un token', token
-    end
-
-    context 'secuencia de escape de retorno de carro' do
-      let(:contenido) { '\\r' }
-
-      include_examples 'se genera un token', token
-    end
-  end
-
-  context 'cuando hay espacios vacios' do
-    let(:string) { ' ' }
-
-    include_examples 'no se genera ningún token'
-  end
-
-  context 'cuando hay tabs' do
-    let(:string) { "\t" }
-
-    include_examples 'no se genera ningún token'
-  end
-
-  context 'cuando hay saltos de linea' do
-    let(:string) { "\n" }
-
-    include_examples 'no se genera ningún token'
-  end
-
-  context 'cuando hay retornos de carro' do
-    let(:string) { "\r" }
-
-    include_examples 'no se genera ningún token'
-  end
-
-  context 'cuando hay comentarios' do
-    let(:string) { "-- Esto es un comentario \n" }
-
-    include_examples 'no se genera ningún token'
-  end
-
-  context 'cuando hay un identificador que comienza en minuscula' do
-    let(:string) { 'identificador' }
-
-    include_examples 'se genera un token', :LOWERID
-  end
-
-  context 'cuando hay un identificador que comienza en mayuscula' do
-    let(:string) { 'Identificador' }
-
-    include_examples 'se genera un token', :UPPERID
-  end
-
-  context 'cuando hay una constante numérica' do
-    let(:string) { '123456789' }
-
-    include_examples 'se genera un token', :NUMBER
-  end
-
-  context 'cuando hay una constante de caracter' do
-    let(:string) { "'#{contenido}'" }
-
-    context 'con un caracter o número' do
-      let(:contenido) { 'u' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'con un vacio' do
-      let(:contenido) { ' ' }
-
-      include_examples 'se genera un token', :CHAR
-    end
-
-    context 'secuencia de caracteres' do
-      let(:contenido) { 'varios' }
-
-      include_examples 'se levanta un error de sintaxis'
-    end
-
-    include_examples 'secuencias de escape generan un token', :CHAR
-  end
-
-  context 'cuando hay una constante de string' do
-    let(:string) { "\"#{contenido}\"" }
-
-    context 'secuencia de caracteres' do
-      let(:contenido) { 'secuencia de caracteres' }
-
-      include_examples 'se genera un token', :STRING
-    end
-
-    context 'sin contenido' do
-      let(:contenido) { '' }
-
-      include_examples 'se genera un token', :STRING
-    end
-
-    include_examples 'secuencias de escape generan un token', :STRING
-  end
-
-  context 'cuando hay una definición' do
-    let(:string) { 'def' }
-
-    include_examples 'se genera un token', :DEF
-  end
-
-  context 'cuando hay una alternativa condicional if' do
-    let(:string) { 'if' }
-
-    include_examples 'se genera un token', :IF
-  end
-
-  context 'cuando hay una alternativa condicional then' do
-    let(:string) { 'then' }
-
-    include_examples 'se genera un token', :THEN
-  end
-
-  context 'cuando hay una alternativa condicional elif' do
-    let(:string) { 'elif' }
-
-    include_examples 'se genera un token', :ELIF
-  end
-
-  context 'cuando hay una alternativa condicional else' do
-    let(:string) { 'else' }
-
-    include_examples 'se genera un token', :ELSE
-  end
-
-  context 'cuando hay pattern matching' do
-    let(:string) { 'case' }
-
-    include_examples 'se genera un token', :CASE
-  end
-
-  context 'cuando hay una declaración local let' do
-    let(:string) { 'let' }
-
-    include_examples 'se genera un token', :LET
-  end
-
-  context 'cuando hay una declaración local in' do
-    let(:string) { 'in' }
-
-    include_examples 'se genera un token', :IN
-  end
-
-  context 'cuando hay una asignación' do
-    let(:string) { '=' }
-
-    include_examples 'se genera un token', :DEFEQ
-  end
-
-  context 'cuando hay una secuenciación' do
-    let(:string) { ';' }
-
-    include_examples 'se genera un token', :SEMICOLON
-  end
-
-  context 'cuando hay un comienzo de agrupación de expresiones' do
-    let(:string) { '(' }
-
-    include_examples 'se genera un token', :LPAREN
-  end
-
-  context 'cuando hay un final de agrupación de expresiones' do
-    let(:string) { ')' }
-
-    include_examples 'se genera un token', :RPAREN
-  end
-
-  context 'cuando hay una definición de función anónima' do
-    let(:string) { '\\' }
-
-    include_examples 'se genera un token', :LAMBDA
-  end
-
-  context 'cuando hay una rama de un case' do
-    let(:string) { '|' }
-
-    include_examples 'se genera un token', :PIPE
-  end
-
-  context 'cuando hay una definición del cuerpo de una función anónima' do
-    let(:string) { '->' }
-
-    include_examples 'se genera un token', :ARROW
-  end
-
-  context 'cuando hay una conjunción' do
-    let(:string) { '&&' }
-
-    include_examples 'se genera un token', :AND
-  end
-
-  context 'cuando hay una disyunción' do
-    let(:string) { '||' }
-
-    include_examples 'se genera un token', :OR
-  end
-
-  context 'cuando hay una negación' do
-    let(:string) { '!' }
-
-    include_examples 'se genera un token', :NOT
-  end
-
-  context 'cuando hay una igualdad' do
-    let(:string) { '==' }
-
-    include_examples 'se genera un token', :EQ
-  end
-
-  context 'cuando hay una desigualdad' do
-    let(:string) { '!=' }
-
-    include_examples 'se genera un token', :NE
-  end
-
-  context 'cuando hay una comparación por mayor o igual' do
-    let(:string) { '>=' }
-
-    include_examples 'se genera un token', :GE
-  end
-
-  context 'cuando hay una comparación por menor o igual' do
-    let(:string) { '<=' }
-
-    include_examples 'se genera un token', :LE
-  end
-
-  context 'cuando hay una comparación por mayor estricto' do
-    let(:string) { '>' }
-
-    include_examples 'se genera un token', :GT
-  end
-
-  context 'cuando hay una comparación por menor estricto' do
-    let(:string) { '<' }
-
-    include_examples 'se genera un token', :LT
-  end
-
-  context 'cuando hay una suma' do
-    let(:string) { '+' }
-
-    include_examples 'se genera un token', :PLUS
-  end
-
-  context 'cuando hay una resta' do
-    let(:string) { '-' }
-
-    include_examples 'se genera un token', :MINUS
-  end
-
-  context 'cuando hay una multiplicación' do
-    let(:string) { '*' }
-
-    include_examples 'se genera un token', :TIMES
-  end
-
-  context 'cuando hay una división' do
-    let(:string) { '/' }
-
-    include_examples 'se genera un token', :DIV
-  end
-
-  context 'cuando hay un resto' do
-    let(:string) { '%' }
-
-    include_examples 'se genera un token', :MOD
-  end
+  # Programa
+
+  it_behaves_like 'parsea', '', a: []
+
+  # Números
+
+  it_behaves_like 'parsea', 'def variable = 2', a: [
+    ['Def', 'variable', ['ExprNumber', 2]]
+  ]
+
+  # Variables
+
+  it_behaves_like 'parsea', 'def suma x = x + 2', a: [
+    ['Def', 'suma',
+      ['ExprLambda', 'x',
+        ['ExprApply',
+          ['ExprApply', %w(ExprVar ADD),
+            %w'ExprVar x'
+          ],
+          ['ExprNumber', 2]
+        ]
+      ]
+    ]
+  ]
+
+  # Constructor
+
+  it_behaves_like 'parsea', 'def a = A', a: [
+    ['Def', 'a', %w'ExprConstructor A']
+  ]
+
+  # Caracteres
+
+  it_behaves_like 'parsea', "def a = 'a' def z = 'z'", a: [
+    ['Def', 'a', ['ExprChar', 97 ]],
+    ['Def', 'z', ['ExprChar', 122]]
+  ]
+
+  # Estructuras
+
+  it_behaves_like 'parsea', 'def lista123 = Cons 1 (Cons 2 (Cons 3 Nil))', a: [
+    ['Def', 'lista123',
+      ['ExprApply',
+        ['ExprApply',
+          %w'ExprConstructor Cons',
+          ['ExprNumber', 1]
+        ],
+        ['ExprApply',
+          ['ExprApply',
+            %w'ExprConstructor Cons',
+            ['ExprNumber', 2]
+          ],
+          ['ExprApply',
+            ['ExprApply',
+              %w'ExprConstructor Cons',
+              ['ExprNumber', 3]
+            ],
+            %w'ExprConstructor Nil'
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  it_behaves_like 'parsea', 'def listaStrings =
+  Cons "" (Cons "a" (Cons "ab" (Cons "abc" Nil)))', a: [
+    ["Def", "listaStrings",
+     ["ExprApply",
+      ["ExprApply",
+       ["ExprConstructor", "Cons"],
+       ["ExprConstructor", "Nil"]
+      ],
+      ["ExprApply",
+       ["ExprApply",
+        ["ExprConstructor", "Cons"],
+        ["ExprApply",
+         ["ExprApply",
+          ["ExprConstructor", "Cons"],
+          ["ExprChar", 97]
+         ],
+         ["ExprConstructor", "Nil"]
+        ]
+       ],
+       ["ExprApply",
+        ["ExprApply",
+         ["ExprConstructor", "Cons"],
+         ["ExprApply",
+          ["ExprApply",
+           ["ExprConstructor", "Cons"],
+           ["ExprChar", 97]
+          ],
+          ["ExprApply",
+           ["ExprApply",
+            ["ExprConstructor", "Cons"],
+            ["ExprChar", 98]
+           ],
+           ["ExprConstructor", "Nil"]
+          ]
+         ]
+        ],
+        ["ExprApply",
+         ["ExprApply",
+          ["ExprConstructor", "Cons"],
+          ["ExprApply",
+           ["ExprApply",
+            ["ExprConstructor", "Cons"],
+            ["ExprChar", 97]
+           ],
+           ["ExprApply",
+            ["ExprApply",
+             ["ExprConstructor", "Cons"],
+             ["ExprChar", 98]
+            ],
+            ["ExprApply",
+             ["ExprApply",
+              ["ExprConstructor", "Cons"],
+              ["ExprChar", 99]
+             ],
+             ["ExprConstructor", "Nil"]
+            ]
+           ]
+          ]
+         ],
+         ["ExprConstructor", "Nil"]
+        ]
+       ]
+      ]
+     ]
+    ]
+  ]
+
+  # Strings
+
+  it_behaves_like 'parsea', 'def abc = "abc"', a: [
+    ['Def', 'abc',
+      ['ExprApply',
+        ['ExprApply',
+          %w'ExprConstructor Cons',
+          ['ExprChar', 97]
+        ],
+        ['ExprApply',
+          ['ExprApply',
+            %w'ExprConstructor Cons',
+            ['ExprChar', 98]
+          ],
+          ['ExprApply',
+            ['ExprApply',
+              %w'ExprConstructor Cons',
+              ['ExprChar', 99]
+            ],
+            %w'ExprConstructor Nil'
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  # If
+
+  it_behaves_like 'parsea', 'def t1 = if x then y else z', a: [
+    ['Def', 't1',
+      ['ExprCase',
+        %w'ExprVar x',
+        [
+          ['CaseBranch', 'True',  [], %w'ExprVar y'],
+          ['CaseBranch', 'False', [], %w'ExprVar z']
+        ]
+      ]
+    ]
+  ]
+
+  # Elif
+
+  it_behaves_like 'parsea', 'def t2 = if x1 then y1 elif x2 then y2 else z', a: [
+    ['Def', 't2',
+      ['ExprCase',
+        %w'ExprVar x1',
+        [
+          ['CaseBranch', 'True', [],
+            %w'ExprVar y1'
+          ],
+          ['CaseBranch', 'False', [],
+            ['ExprCase',
+              %w'ExprVar x2',
+              [
+                ['CaseBranch', 'True', [],
+                  %w'ExprVar y2'
+                ],
+                ['CaseBranch', 'False', [],
+                  %w'ExprVar z'
+                ]
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  # Case
+
+  it_behaves_like 'parsea', 'def t5 = case x | X1 -> a | X2 -> b | X3 -> c', a: [
+    ['Def', 't5',
+      ['ExprCase',
+        %w'ExprVar x',
+        [
+          ['CaseBranch', 'X1', [],
+            %w'ExprVar a'
+          ],
+          ['CaseBranch', 'X2', [],
+            %w'ExprVar b'
+          ],
+          ['CaseBranch', 'X3', [],
+            %w'ExprVar c'
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  # Let
+
+  it_behaves_like 'parsea', 'def t1 = let x = y in z', a: [
+    ['Def', 't1',
+      ['ExprLet', 'x',
+        %w'ExprVar y',
+        %w'ExprVar z'
+      ]
+    ]
+  ]
+
+  it_behaves_like 'parsea', 'def t2 = if (let x = 1 in 2) then (let y w = 1 in 2) else (let z a b c = 1 in 2)', a: [
+    ["Def", "t2",
+     ["ExprCase",
+      ["ExprLet", "x",
+       ["ExprNumber", 1],
+       ["ExprNumber", 2]
+      ],
+      [
+        ["CaseBranch", "True", [],
+         ["ExprLet", "y",
+          ["ExprLambda", "w",
+           ["ExprNumber", 1]
+          ],
+          ["ExprNumber", 2]
+         ]
+        ],
+        ["CaseBranch", "False", [],
+         ["ExprLet", "z",
+          ["ExprLambda", "a",
+           ["ExprLambda", "b",
+            ["ExprLambda", "c",
+             ["ExprNumber", 1]
+            ]
+           ]
+          ],
+          ["ExprNumber", 2]
+         ]
+        ]
+      ]
+     ]
+    ]
+  ]
+
+  # Lambdas
+
+  it_behaves_like 'parsea', 'def t4 = \ x y -> y', a: [
+    ['Def', 't4',
+      ['ExprLambda', 'x',
+        ['ExprLambda', 'y',
+          %w'ExprVar y'
+        ]
+      ]
+    ]
+  ]
+
+  # Secuenciación
+
+  it_behaves_like 'parsea', 'def t1 = a ; b', a: [
+    ['Def', 't1',
+      ['ExprLet', '_',
+        %w'ExprVar a',
+        %w'ExprVar b'
+      ]
+    ]
+  ]
+
+  # Operadores
+
+  it_behaves_like 'parsea', 'def foo = 2 + 1',  a: [['Def', 'foo', ['ExprApply', ['ExprApply', %w(ExprVar ADD), ['ExprNumber', 2]], ['ExprNumber', 1]]]]
+  it_behaves_like 'parsea', 'def foo = 3 - 1',  a: [['Def', 'foo', ['ExprApply', ['ExprApply', %w(ExprVar SUB), ['ExprNumber', 3]], ['ExprNumber', 1]]]]
+  it_behaves_like 'parsea', 'def foo = 4 * 12', a: [['Def', 'foo', ['ExprApply', ['ExprApply', %w(ExprVar MUL), ['ExprNumber', 4]], ['ExprNumber', 12]]]]
+  it_behaves_like 'parsea', 'def foo = 12 / 4', a: [['Def', 'foo', ['ExprApply', ['ExprApply', %w(ExprVar DIV), ['ExprNumber', 12]], ['ExprNumber', 4]]]]
+  it_behaves_like 'parsea', 'def foo = 20 % 5', a: [['Def', 'foo', ['ExprApply', ['ExprApply', %w(ExprVar MOD), ['ExprNumber', 20]], ['ExprNumber', 5]]]]
+  it_behaves_like 'parsea', 'def foo = -5',     a: [['Def', 'foo', ['ExprApply', %w(ExprVar UMINUS), ['ExprNumber', 5]]]]
+
+  it_behaves_like 'parsea', 'def bool = True || False', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar OR), %w'ExprConstructor True'], %w'ExprConstructor False']]]
+  it_behaves_like 'parsea', 'def bool = True && False', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar AND), %w'ExprConstructor True'], %w'ExprConstructor False']]]
+  it_behaves_like 'parsea', 'def bool = !True',         a: [['Def', 'bool', ['ExprApply', %w(ExprVar NOT), %w'ExprConstructor True']]]
+
+  it_behaves_like 'parsea', 'def bool = 1 != 2', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar NE), ['ExprNumber', 1]], ['ExprNumber', 2]]]]
+  it_behaves_like 'parsea', 'def bool = 2 == 2', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar EQ), ['ExprNumber', 2]], ['ExprNumber', 2]]]]
+  it_behaves_like 'parsea', 'def bool = 1 <= 2', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar LE), ['ExprNumber', 1]], ['ExprNumber', 2]]]]
+  it_behaves_like 'parsea', 'def bool = 1 >= 2', a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar GE), ['ExprNumber', 1]], ['ExprNumber', 2]]]]
+  it_behaves_like 'parsea', 'def bool = 3 > 2',  a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar GT), ['ExprNumber', 3]], ['ExprNumber', 2]]]]
+  it_behaves_like 'parsea', 'def bool = 3 < 2',  a: [['Def', 'bool', ['ExprApply', ['ExprApply', %w(ExprVar LT), ['ExprNumber', 3]], ['ExprNumber', 2]]]]
+
+  # Asociatividad
+
+  it_behaves_like 'parsea', 'def it10=a/(b%(c/(d%(e/f))))', a: [
+    ['Def', 'it10',
+      ['ExprApply',
+        ['ExprApply',
+          %w'ExprVar DIV',
+          %w'ExprVar a'
+        ],
+        ['ExprApply',
+          ['ExprApply',
+            %w'ExprVar MOD',
+            %w'ExprVar b'
+          ],
+          ['ExprApply',
+            ['ExprApply',
+              %w'ExprVar DIV',
+              %w'ExprVar c'
+            ],
+            ['ExprApply',
+              ['ExprApply',
+                %w'ExprVar MOD',
+                %w'ExprVar d'
+              ],
+              ['ExprApply',
+                ['ExprApply',
+                  %w'ExprVar DIV',
+                  %w'ExprVar e'
+                ],
+                %w'ExprVar f'
+              ]
+            ]
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  # Precedencia
+
+  it_behaves_like 'parsea', 'def t10=-(a && b)', a: [
+    ['Def', 't10',
+      ['ExprApply',
+        %w'ExprVar UMINUS',
+        ['ExprApply',
+          ['ExprApply',
+            %w'ExprVar AND',
+            %w'ExprVar a'
+          ],
+          %w'ExprVar b'
+        ]
+      ]
+    ]
+  ]
+
+  it_behaves_like 'parsea', 'def null list =
+                               case list
+                               | Nil       -> True
+                               | Cons x xs -> False', a: [
+    ["Def", "null",
+     ["ExprLambda", "list",
+      ["ExprCase",
+       ["ExprVar", "list"],
+       [
+         ["CaseBranch", "Nil", [],
+          ["ExprConstructor", "True"]
+         ],
+         ["CaseBranch", "Cons", ["x", "xs"],
+          ["ExprConstructor", "False"]
+         ]
+       ]
+      ]
+     ]
+    ]
+  ]
 end
