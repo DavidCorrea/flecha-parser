@@ -11,30 +11,33 @@ describe Compilador do
   context 'isolated constructors' do
     context 'True' do
       it 'returns the compiled code' do
-        assert_expression_is_compiled_to([['True']],
-          "alloc($r, 1)\n"\
+        assert_expression_is_compiled_to([["Def", "t", ['True']]],
+          "alloc($r0, 1)\n"\
           "mov_int($t, 4)\n"\
-          "store($r, 0, $t)"
+          "store($r0, 0, $t)\n"\
+          "mov_reg(@G_t, $r0)"
         )
       end
     end
 
     context 'False' do
       it 'returns the compiled code' do
-        assert_expression_is_compiled_to([['False']],
-          "alloc($r, 1)\n"\
+        assert_expression_is_compiled_to([['Def', 'f', ['False']]],
+          "alloc($r0, 1)\n"\
           "mov_int($t, 5)\n"\
-          "store($r, 0, $t)"
+          "store($r0, 0, $t)\n"\
+          "mov_reg(@G_f, $r0)"
         )
       end
     end
 
     context 'Nil' do
       it 'returns the compiled code' do
-        assert_expression_is_compiled_to([['Nil']],
-          "alloc($r, 1)\n"\
+        assert_expression_is_compiled_to([['Def', 'nil', ['Nil']]],
+          "alloc($r0, 1)\n"\
           "mov_int($t, 6)\n"\
-          "store($r, 0, $t)"
+          "store($r0, 0, $t)\n"\
+          "mov_reg(@G_nil, $r0)"
         )
       end
     end
@@ -88,7 +91,6 @@ describe Compilador do
 
   context 'Let' do
     it 'returns the compiled code' do
-      # [["Def", "t", ["ExprLet", "x", ["ExprNumber", 1], ["ExprVar", "x"]]]]
       assert_expression_is_compiled_to([["Def", "t", ["ExprLet", "x", ["ExprNumber", 1], %w(ExprVar x)]]],
         "alloc($temp, 2)\n"\
         "mov_int($t, 1)\n"\

@@ -7,23 +7,11 @@ class Compilador
   def call(program, compiled = '')
     program.reduce(compiled) do |result, instructions|
       if instructions[0] == 'True'
-        result.concat(
-          "alloc($r, 1)\n"\
-          "mov_int($t, 4)\n"\
-          "store($r, 0, $t)"
-        )
+        compile_isolated_constructor_with code: '4'
       elsif instructions[0] == 'False'
-        result.concat(
-          "alloc($r, 1)\n"\
-          "mov_int($t, 5)\n"\
-          "store($r, 0, $t)"
-        )
+        compile_isolated_constructor_with code: '5'
       elsif instructions[0] == 'Nil'
-        result.concat(
-          "alloc($r, 1)\n"\
-          "mov_int($t, 6)\n"\
-          "store($r, 0, $t)"
-        )
+        compile_isolated_constructor_with code: '6'
       elsif instructions[0] == 'ExprChar'
         @last_used = fresh_register
         "alloc(#{@last_used}, 2)\n"\
@@ -43,11 +31,11 @@ class Compilador
         "#{call [instructions[1]], result}"
       elsif instructions[0] == 'ExprVar'
         if instructions[1] == 'unsafePrintInt'
-          "load(#{@loaded}, #{@last_used}, 1)\n"\
-          "print(#{@loaded})"
+          loaded = fresh_register
+          "load(#{loaded}, #{@last_used}, 1)\n"\
+          "print(#{loaded})"
         else
           @last_used = fresh_register
-          @loaded = fresh_register
           "mov_reg(#{@last_used}, #{fetch_from_context instructions[1]})"\
         end
       elsif instructions[0] == 'ExprLet'
@@ -63,6 +51,13 @@ class Compilador
         )
       end
     end
+  end
+
+  def compile_isolated_constructor_with(code:)
+    @last_used = fresh_register
+    "alloc(#{@last_used}, 1)\n"\
+    "mov_int($t, #{code})\n"\
+    "store(#{@last_used}, 0, $t)"
   end
 
   def fetch_from_context(variable)
