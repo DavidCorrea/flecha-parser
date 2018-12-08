@@ -82,3 +82,16 @@ task :compile, [:filename] do |_, args|
     file.unlink
   end
 end
+
+task :compile_instructions, [:filename] do |_, args|
+  info "Lexing '#{args[:filename]}'..."
+  tokens = FlechaLexer.new.lex_file("spec/compiler_test_files/#{args[:filename]}.fl")
+
+  info "Parsing '#{args[:filename]}'..."
+  parse_result = FlechaParser.new.parse(tokens)
+
+  info "Compiling '#{args[:filename]}'..."
+  mamarracho = Compiler.new.compile(parse_result)
+
+  print mamarracho
+end

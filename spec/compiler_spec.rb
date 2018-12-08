@@ -113,20 +113,20 @@ describe Compiler do
   end
 
   context 'Let' do
-    it 'returns the compiled code' do
+    xit 'returns the compiled code' do
       assert_expression_is_compiled_to([["Def", "t", ["ExprLet", "x", ["ExprNumber", 1], %w(ExprVar x)]]],
-        "alloc($temp, 2)\n"\
+        "alloc($tmp_0, 2)\n"\
         "mov_int($t, 1)\n"\
-        "store($temp, 0, $t)\n"\
+        "store($tmp_0, 0, $t)\n"\
         "mov_int($t, 1)\n"\
-        "store($temp, 1, $t)\n"\
-        "mov_reg($r0, $temp)\n"\
+        "store($tmp_0, 1, $t)\n"\
+        "mov_reg($r0, $tmp_0)\n"\
         "mov_reg(@G_t, $r0)\n"
       )
     end
 
-    it 'returns the compiled code' do
-
+    it 'asd' do
+      assert_expression_is_compiled_to([["Def", "foo", ["ExprNumber", 42]], ["Def", "main", ["ExprLet", "_", ["ExprApply", ["ExprVar", "unsafePrintInt"], ["ExprVar", "foo"]], ["ExprLet", "_", ["ExprApply", ["ExprVar", "unsafePrintChar"], ["ExprChar", 92]], ["ExprLet", "_", ["ExprLet", "foo", ["ExprNumber", 43], ["ExprApply", ["ExprVar", "unsafePrintInt"], ["ExprVar", "foo"]]], ["ExprLet", "_", ["ExprApply", ["ExprVar", "unsafePrintChar"], ["ExprChar", 92]], ["ExprLet", "_", ["ExprApply", ["ExprVar", "unsafePrintInt"], ["ExprVar", "foo"]], ["ExprApply", ["ExprVar", "unsafePrintChar"], ["ExprChar", 92]]]]]]]]], '')
     end
   end
 

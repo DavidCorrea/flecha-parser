@@ -6,6 +6,7 @@ class Compiler
   LOCAL_REGISTER_PREFIX = '$'
   ROUTINE_PREFIX = 'rtn_'
 
+  TEMPORARY_POSTFIX = 'tmp'
   FUNCTION_POSTFIX = 'fun'
   ARGUMENTS_POSTFIX = 'arg'
   RESULT_POSTFIX = 'res'
@@ -23,6 +24,7 @@ class Compiler
 
   def initialize
     @register_index = 0
+    @scope_depth = 0
     @routine_index = 0
 
     @env = {}
@@ -88,9 +90,12 @@ class Compiler
   end
 
   def compile_def(instructions, result)
+    def_name = instructions[1]
+    def_body = instructions[2]
+
     result.concat(generate_output([
-      compile([instructions[2]], result),
-      mov_reg(global_user_register(instructions[1]), @last_used),
+      compile([def_body], result),
+      mov_reg(global_user_register(def_name), @last_used),
       ''
     ]))
   end
@@ -122,14 +127,30 @@ class Compiler
   end
 
   def compile_let(instructions, result)
-    @let = true
-    to_temp = compile([instructions[2]], result)
-    @env[instructions[1]] = '$temp'
-    @let = false
+    variable = instructions[1]
+    variable_definition = instructions[2]
+    let_body = instructions[3]
+
+    @current_scoped_variable = variable
+    compiled_variable_definition = compile([variable_definition], result)
+    scoped_variable = scoped_variable(variable, @scope_depth)
+    @current_scoped_variable = nil
+
+    if variable != '_'
+      @env[scoped_variable] = @last_used
+      @scope_depth += 1
+    end
+
+    compiled_let_body = compile([let_body], result)
+
+    if variable != '_'
+      @scope_depth -= 1
+      @env.delete(scoped_variable)
+    end
 
     generate_output([
-      to_temp,
-      compile([instructions[3]], result)
+      compiled_variable_definition,
+      compiled_let_body
     ])
   end
 
@@ -203,12 +224,22 @@ class Compiler
   end
 
   def fetch_from_context(variable)
-    @arg == variable ? local_arguments_register : @env[variable] || global_user_register(variable)
+    closer_variable_declaration_depth = @scope_depth.downto(0).find { |depth| @env.has_key?(scoped_variable(variable, depth)) }
+
+    if closer_variable_declaration_depth
+      @env[scoped_variable(variable, closer_variable_declaration_depth)]
+    else
+      if @arg == variable
+        local_arguments_register
+      else
+        @env[variable] || global_user_register(variable)
+      end
+    end
   end
 
   def fresh_register
-    if @let
-      '$temp'
+    if @current_scoped_variable
+      temporary_register("#{@current_scoped_variable}_#{@scope_depth}")
     else
       fresh = @register_index
       @register_index += 1
@@ -227,6 +258,10 @@ class Compiler
     instructions[1][1] == UNSAFE_PRINT_INT || instructions[1][1] == UNSAFE_PRINT_CHAR
   end
 
+  def scoped_variable(variable, depth)
+    "#{variable}_#{depth}"
+  end
+
   def generate_output(instructions)
     instructions.join("\n")
   end
@@ -237,6 +272,10 @@ class Compiler
 
   def local_register(register_name)
     "#{LOCAL_REGISTER_PREFIX}#{register_name}"
+  end
+
+  def temporary_register(register_name)
+    "#{LOCAL_REGISTER_PREFIX}#{TEMPORARY_POSTFIX}_#{register_name}"
   end
 
   def global_result_register
