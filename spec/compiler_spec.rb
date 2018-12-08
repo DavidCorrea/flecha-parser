@@ -8,6 +8,32 @@ describe Compiler do
     end
   end
 
+  context 'Primitives' do
+    context 'Char' do
+      it 'returns the compiled code' do
+        assert_expression_is_compiled_to([["ExprChar", 'A']],
+          "alloc($r0, 2)\n"\
+          "mov_int($t, 2)\n"\
+          "store($r0, 0, $t)\n"\
+          "mov_int($t, 65)\n"\
+          "store($r0, 1, $t)"
+        )
+      end
+    end
+
+    context 'Int' do
+      it 'returns the compiled code' do
+        assert_expression_is_compiled_to([["ExprNumber", 100]],
+          "alloc($r0, 2)\n"\
+          "mov_int($t, 1)\n"\
+          "store($r0, 0, $t)\n"\
+          "mov_int($t, 100)\n"\
+          "store($r0, 1, $t)"
+        )
+      end
+    end
+  end
+
   context 'isolated constructors' do
     context 'True' do
       it 'returns the compiled code' do
@@ -40,30 +66,6 @@ describe Compiler do
           "mov_reg(@G_nil, $r0)\n"
         )
       end
-    end
-  end
-
-  context 'Char' do
-    it 'returns the compiled code' do
-      assert_expression_is_compiled_to([["ExprChar", 'A']],
-        "alloc($r0, 2)\n"\
-        "mov_int($t, 2)\n"\
-        "store($r0, 0, $t)\n"\
-        "mov_int($t, 65)\n"\
-        "store($r0, 1, $t)"
-      )
-    end
-  end
-
-  context 'Int' do
-    it 'returns the compiled code' do
-      assert_expression_is_compiled_to([["ExprNumber", 100]],
-        "alloc($r0, 2)\n"\
-        "mov_int($t, 1)\n"\
-        "store($r0, 0, $t)\n"\
-        "mov_int($t, 100)\n"\
-        "store($r0, 1, $t)"
-      )
     end
   end
 
