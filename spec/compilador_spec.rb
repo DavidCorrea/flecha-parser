@@ -15,7 +15,7 @@ describe Compilador do
           "alloc($r0, 1)\n"\
           "mov_int($t, 4)\n"\
           "store($r0, 0, $t)\n"\
-          "mov_reg(@G_t, $r0)"
+          "mov_reg(@G_t, $r0)\n"
         )
       end
     end
@@ -26,7 +26,7 @@ describe Compilador do
           "alloc($r0, 1)\n"\
           "mov_int($t, 5)\n"\
           "store($r0, 0, $t)\n"\
-          "mov_reg(@G_f, $r0)"
+          "mov_reg(@G_f, $r0)\n"
         )
       end
     end
@@ -37,7 +37,7 @@ describe Compilador do
           "alloc($r0, 1)\n"\
           "mov_int($t, 6)\n"\
           "store($r0, 0, $t)\n"\
-          "mov_reg(@G_nil, $r0)"
+          "mov_reg(@G_nil, $r0)\n"
         )
       end
     end
@@ -75,7 +75,7 @@ describe Compilador do
         "store($r0, 0, $t)\n"\
         "mov_int($t, 42)\n"\
         "store($r0, 1, $t)\n"\
-        "mov_reg(@G_foo, $r0)"
+        "mov_reg(@G_foo, $r0)\n"
       )
     end
 
@@ -86,11 +86,26 @@ describe Compilador do
         "store($r0, 0, $t)\n"\
         "mov_int($t, 42)\n"\
         "store($r0, 1, $t)\n"\
-        "mov_reg(@G_foo, $r0)"\
+        "mov_reg(@G_foo, $r0)\n"\
         "mov_reg($r1, @G_foo)\n"\
         "load($r2, $r1, 1)\n"\
         "print($r2)\n"\
-        "mov_reg(@G_main, $r1)"
+        "mov_reg(@G_main, $r1)\n"
+      )
+    end
+
+    it 'returns the compiled code for a char variable' do
+      assert_expression_is_compiled_to([['Def', 'b_char', %w(ExprChar B)], ["Def", "main", ["ExprApply", %w(ExprVar unsafePrintChar), %w(ExprVar b_char)]]],
+        "alloc($r0, 2)\n"\
+        "mov_int($t, 2)\n"\
+        "store($r0, 0, $t)\n"\
+        "mov_int($t, 66)\n"\
+        "store($r0, 1, $t)\n"\
+        "mov_reg(@G_b_char, $r0)\n"\
+        "mov_reg($r1, @G_b_char)\n"\
+        "load($r2, $r1, 1)\n"\
+        "print_char($r2)\n"\
+        "mov_reg(@G_main, $r1)\n"
       )
     end
   end
@@ -104,26 +119,32 @@ describe Compilador do
         "mov_int($t, 1)\n"\
         "store($temp, 1, $t)\n"\
         "mov_reg($r0, $temp)\n"\
-        "mov_reg(@G_t, $r0)"
+        "mov_reg(@G_t, $r0)\n"
       )
     end
   end
 
   context 'Lambda' do
     it 'returns the compiled code' do
-      assert_expression_is_compiled_to([["ExprLambda", "y", ["ExprVar", "y"]]],
+      assert_expression_is_compiled_to([["ExprLambda", "y", %w(ExprVar y)]],
+        "alloc($r0, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r0, 0, $t)\n"\
         "rtn_1:\n"\
         "mov_reg($fun, @fun)\n"\
         "mov_reg($arg, @arg)\n"\
-        "mov_reg($r0, $arg)\n"\
-        "mov_reg($res, $r0)\n"\
+        "mov_reg($r1, $arg)\n"\
+        "mov_reg($res, $r1)\n"\
         "mov_reg(@res, $res)\n"\
-        "return()\n"
+        "return()\n"\
+        "mov_label($t, rtn_1)\n"\
+        "store($r0, 1, $t)\n"\
+        "store($r0, 2, $arg)"
       )
     end
 
-    it 'returns the compiled code' do
-      assert_expression_is_compiled_to([["ExprLambda", "x", ["ExprLambda", "y", ["ExprVar", "x"]]]],
+    it 'returns the compiled code for doble lambda' do
+      assert_expression_is_compiled_to([["ExprLambda", "x", ["ExprLambda", "y", %w(ExprVar x)]]],
         "alloc($r0, 3)\n"\
         "mov_int($t, 3)\n"\
         "store($r0, 0, $t)\n"\
@@ -152,7 +173,7 @@ describe Compilador do
         ""\
         "mov_label($t, rtn_1)\n"\
         "store($r0, 1, $t)\n"\
-        "store($r0, 2, $arg)\n"
+        "store($r0, 2, $arg)"
       )
     end
   end
@@ -170,24 +191,50 @@ describe Compilador do
         "mov_reg(@fun, $r0)\n"\
         "mov_reg(@arg, $r1)\n"\
         "icall($r2)\n"\
-        "mov_reg($r3, @res)\n"
+        "mov_reg($r3, @res)"
       )
     end
   end
 
   context 'Application - Constructor' do
-    it 'sarasa' do
-      assert_expression_is_compiled_to([[%w'ExprConstructor Cons']],
+    it 'builds a curried cons function' do
+      assert_expression_is_compiled_to([%w'ExprConstructor Cons'],
+        "alloc($r0, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r0, 0, $t)\n"\
+        ""\
         "rtn_1:\n"\
         "mov_reg($fun, @fun)\n"\
         "mov_reg($arg, @arg)\n"\
-        "mov_reg($r0, $arg)\n"\
-        "mov_reg($res, $r0)\n"\
+        "alloc($r1, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r1, 0, $t)\n"\
+        ""\
+        "rtn_2:\n"\
+        "mov_reg($fun, @fun)\n"\
+        "mov_reg($arg, @arg)\n"\
+        "load($r2, $fun, 2)\n"\
+        ""\
+        "alloc($r3, 3)\n"\
+        "mov_int($t, 7)\n"\
+        "store($r3, 0, $t)\n"\
+        "store($r3, 1, $arg)\n"\
+        "store($r3, 2, $r2)\n"\
+        ""\
+        "mov_reg($res, $r3)\n"\
         "mov_reg(@res, $res)\n"\
         "return()\n"\
-        "alloc($r0, 3)\n"\
-        "mov_int($t, 7)\n"\
-        "store($r0, 0, $t)"\
+        ""\
+        "mov_label($t, rtn_2)\n"\
+        "store($r1, 1, $t)\n"\
+        "store($r1, 2, $arg)\n"\
+        "mov_reg($res, $r3)\n"\
+        "mov_reg(@res, $res)\n"\
+        "return()\n"\
+        ""\
+        "mov_label($t, rtn_1)\n"\
+        "store($r0, 1, $t)\n"\
+        "store($r0, 2, $arg)"
       )
     end
 

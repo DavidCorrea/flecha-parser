@@ -33,6 +33,10 @@ class Compilador
           loaded = fresh_register
           "load(#{loaded}, #{@last_used}, 1)\n"\
           "print(#{loaded})"
+        elsif instructions[1] == 'unsafePrintChar'
+          loaded = fresh_register
+          "load(#{loaded}, #{@last_used}, 1)\n"\
+          "print_char(#{loaded})"
         elsif @fun_env.has_key?(instructions[1])
           @last_used = fresh_register
           "load(#{@last_used}, $fun, #{@fun_env[instructions[1]]})"
@@ -49,7 +53,7 @@ class Compilador
       elsif instructions[0] == 'Def'
         result.concat(
           "#{call [instructions[2]], result}\n"\
-          "mov_reg(@G_#{instructions[1]}, #{@last_used})"
+          "mov_reg(@G_#{instructions[1]}, #{@last_used})\n"
         )
       elsif instructions[0] == 'ExprLambda'
         routine_name = fresh_routine_name
@@ -71,36 +75,40 @@ class Compilador
         "store(#{routine_register}, 1, $t)\n"\
         "store(#{routine_register}, 2, $arg)"
       elsif instructions[0] == 'ExprApply'
-        if instructions[1][1] == 'unsafePrintInt'
+        if instructions[1][1] == 'unsafePrintInt' || instructions[1][1] == 'unsafePrintChar'
           "#{call [instructions[2]], result}\n"\
           "#{call [instructions[1]], result}"
         else
-          clausura = instructions[1]
-          parametro = instructions[2]
+          closure = instructions[1]
+          param = instructions[2]
 
-          a = call([clausura], result)
-          registro_clausura = @last_used
-          b = call([parametro], a)
-          registro_parametro = @last_used
+          compiled_closure = call([closure], result)
+          closure_register = @last_used
+          compiled_param = call([param], result)
+          param_register = @last_used
 
-          if true
-            registro_rutina = fresh_register
+          routine_register = fresh_register
 
-            "#{a}\n"\
-            "#{b}\n"\
-            "load(#{registro_rutina}, #{registro_clausura}, 1)\n"\
-            "mov_reg(@fun, #{registro_clausura})\n"\
-            "mov_reg(@arg, #{registro_parametro})\n"\
-            "icall(#{registro_rutina})\n"\
-            "mov_reg(#{fresh_register}, @res)"
-          else
-            alloc($r, 3)
-            mov_int($t, 7)
-            store($r, 0, $t)
-            store($r, 1, $r1)
-            store($r, 2, $r2)
-          end
+          "#{compiled_closure}\n"\
+          "#{compiled_param}\n"\
+          "load(#{routine_register}, #{closure_register}, 1)\n"\
+          "mov_reg(@fun, #{closure_register})\n"\
+          "mov_reg(@arg, #{param_register})\n"\
+          "icall(#{routine_register})\n"\
+          "mov_reg(#{fresh_register}, @res)"
         end
+      elsif instructions[0] == 'ExprConstructor'
+        call([["ExprLambda", "#_x", ["ExprLambda", "#_y", %w(ExprCons Cons)]]], result)
+      elsif instructions[0] == 'ExprCons'
+        fun_register = fresh_register
+        @last_used = fresh_register
+
+        "load(#{fun_register}, $fun, 2)\n"\
+        "alloc(#{@last_used}, 3)\n"\
+        "mov_int($t, 7)\n"\
+        "store(#{@last_used}, 0, $t)\n"\
+        "store(#{@last_used}, 1, $arg)\n"\
+        "store(#{@last_used}, 2, #{fun_register})"\
       end
     end
   end
