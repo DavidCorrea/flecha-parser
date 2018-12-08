@@ -1,4 +1,26 @@
 class Compiler
+
+  TEMP_REGISTER = '$t'
+
+  GLOBAL_REGISTER_PREFIX = '@'
+  LOCAL_REGISTER_PREFIX = '$'
+  ROUTINE_PREFIX = 'rtn_'
+
+  FUNCTION_POSTFIX = 'fun'
+  ARGUMENTS_POSTFIX = 'arg'
+  RESULT_POSTFIX = 'res'
+
+  INT_TAG = 1
+  CHAR_TAG = 2
+  CLOSURE_TAG = 3
+  TRUE_TAG = 4
+  FALSE_TAG = 5
+  NIL_TAG = 6
+  CONS_TAG = 7
+
+  UNSAFE_PRINT_INT = 'unsafePrintInt'
+  UNSAFE_PRINT_CHAR = 'unsafePrintChar'
+
   def initialize
     @r_index = 0
     @routine_index = 0
@@ -6,43 +28,50 @@ class Compiler
     @fun_env = {}
   end
 
-  def call(program, compiled = '')
+  def compile(program, compiled = '')
     program.reduce(compiled) do |result, instructions|
       if instructions[0] == 'True'
-        compile_isolated_constructor_with code: '4'
+        compile_isolated_constructor_with code: TRUE_TAG
       elsif instructions[0] == 'False'
-        compile_isolated_constructor_with code: '5'
+        compile_isolated_constructor_with code: FALSE_TAG
       elsif instructions[0] == 'Nil'
-        compile_isolated_constructor_with code: '6'
+        compile_isolated_constructor_with code: NIL_TAG
       elsif instructions[0] == 'ExprChar'
         @last_used = fresh_register
-        "alloc(#{@last_used}, 2)\n"\
-        "mov_int($t, 2)\n"\
-        "store(#{@last_used}, 0, $t)\n"\
-        "mov_int($t, #{instructions[1].ord})\n"\
-        "store(#{@last_used}, 1, $t)"
+
+        generate_output([
+          alloc(@last_used, 2),
+          mov_int(TEMP_REGISTER, CHAR_TAG),
+          store(@last_used, 0, TEMP_REGISTER),
+          mov_int(TEMP_REGISTER, instructions[1].ord),
+          store(@last_used, 1, TEMP_REGISTER)
+        ])
       elsif instructions[0] == 'ExprNumber'
         @last_used = fresh_register
-        "alloc(#{@last_used}, 2)\n"\
-        "mov_int($t, 1)\n"\
-        "store(#{@last_used}, 0, $t)\n"\
-        "mov_int($t, #{instructions[1]})\n"\
-        "store(#{@last_used}, 1, $t)"
+
+        generate_output([
+          alloc(@last_used, 2),
+          mov_int(TEMP_REGISTER, INT_TAG),
+          store(@last_used, 0, TEMP_REGISTER),
+          mov_int(TEMP_REGISTER, instructions[1]),
+          store(@last_used, 1, TEMP_REGISTER)
+        ])
       elsif instructions[0] == 'ExprVar'
         compile_variable(instructions)
       elsif instructions[0] == 'ExprLet'
         compile_let(instructions, result)
       elsif instructions[0] == 'Def'
-        result.concat(
-          "#{call [instructions[2]], result}\n"\
-          "mov_reg(@G_#{instructions[1]}, #{@last_used})\n"
-        )
+        result.concat(generate_output([
+          compile([instructions[2]], result),
+          mov_reg("@G_#{instructions[1]}", @last_used),
+          ''
+        ]))
       elsif instructions[0] == 'ExprLambda'
         compile_lambda(instructions, result)
       elsif instructions[0] == 'ExprApply'
         compile_application(instructions, result)
       elsif instructions[0] == 'ExprConstructor'
-        call([["ExprLambda", "#_x", ["ExprLambda", "#_y", %w(ExprCons Cons)]]], result)
+        compile([["ExprLambda", "#_x", ["ExprLambda", "#_y", %w(ExprCons Cons)]]], result)
       elsif instructions[0] == 'ExprCons'
         compile_cons
       end
@@ -53,53 +82,67 @@ class Compiler
 
   def compile_let(instructions, result)
     @let = true
-    to_temp = "#{call [instructions[2]], result}"
+    to_temp = compile([instructions[2]], result)
     @env[instructions[1]] = '$temp'
     @let = false
 
-    "#{to_temp}\n#{call [instructions[3]], result}"
+    generate_output([
+      to_temp,
+      compile([instructions[3]], result)
+    ])
   end
 
   def compile_variable(instructions)
-    if instructions[1] == 'unsafePrintInt'
+    if instructions[1] == UNSAFE_PRINT_INT
       loaded = fresh_register
-      "load(#{loaded}, #{@last_used}, 1)\n"\
-      "print(#{loaded})"
-    elsif instructions[1] == 'unsafePrintChar'
+
+      generate_output([
+        load(loaded, @last_used, 1),
+        print(loaded)
+      ])
+    elsif instructions[1] == UNSAFE_PRINT_CHAR
       loaded = fresh_register
-      "load(#{loaded}, #{@last_used}, 1)\n"\
-      "print_char(#{loaded})"
+
+      generate_output([
+        load(loaded, @last_used, 1),
+        print_char(loaded)
+      ])
     elsif @fun_env.has_key?(instructions[1])
       @last_used = fresh_register
-      "load(#{@last_used}, $fun, #{@fun_env[instructions[1]]})"
+      load(@last_used, '$fun', @fun_env[instructions[1]])
     else
       @last_used = fresh_register
-      "mov_reg(#{@last_used}, #{fetch_from_context instructions[1]})"
+      mov_reg(@last_used, fetch_from_context(instructions[1]))
     end
   end
 
   def compile_application(instructions, result)
     if unsafe_printing?(instructions)
-      "#{call [instructions[2]], result}\n"\
-          "#{call [instructions[1]], result}"
+
+      generate_output([
+        compile([instructions[2]], result),
+        compile([instructions[1]], result)
+      ])
     else
       closure = instructions[1]
       param = instructions[2]
 
-      compiled_closure = call([closure], result)
+      compiled_closure = compile([closure], result)
       closure_register = @last_used
-      compiled_param = call([param], result)
+      compiled_param = compile([param], result)
       param_register = @last_used
 
       routine_register = fresh_register
 
-      "#{compiled_closure}\n"\
-      "#{compiled_param}\n"\
-      "load(#{routine_register}, #{closure_register}, 1)\n"\
-      "mov_reg(@fun, #{closure_register})\n"\
-      "mov_reg(@arg, #{param_register})\n"\
-      "icall(#{routine_register})\n"\
-      "mov_reg(#{fresh_register}, @res)"
+      generate_output([
+        compiled_closure,
+        compiled_param,
+        load(routine_register, closure_register, 1),
+        mov_reg('@fun', closure_register),
+        mov_reg('@arg', param_register),
+        icall(routine_register),
+        mov_reg(fresh_register, '@res')
+      ])
     end
   end
 
@@ -109,19 +152,21 @@ class Compiler
     @fun_env[@arg] = @fun_env.size + 2 if @arg
     @arg = instructions[1]
 
-    "alloc(#{routine_register}, 3)\n"\
-    "mov_int($t, 3)\n"\
-    "store(#{routine_register}, 0, $t)\n"\
-    "#{routine_name}:\n"\
-    "mov_reg($fun, @fun)\n"\
-    "mov_reg($arg, @arg)\n"\
-    "#{call [instructions[2]], result}\n"\
-    "mov_reg($res, #{@last_used})\n"\
-    "mov_reg(@res, $res)\n"\
-    "return()\n"\
-    "mov_label($t, #{routine_name})\n"\
-    "store(#{routine_register}, 1, $t)\n"\
-    "store(#{routine_register}, 2, $arg)"
+    generate_output([
+      alloc(routine_register, 3),
+      mov_int(TEMP_REGISTER, CLOSURE_TAG),
+      store(routine_register, 0, TEMP_REGISTER),
+      label(routine_name),
+      mov_reg('$fun', '@fun'),
+      mov_reg('$arg', '@arg'),
+      compile([instructions[2]], result),
+      mov_reg('$res', @last_used),
+      mov_reg('@res', '$res'),
+      return_from_routine,
+      mov_label(TEMP_REGISTER, routine_name),
+      store(routine_register, 1, TEMP_REGISTER),
+      store(routine_register, 2, '$arg')
+    ])
   end
 
 
@@ -129,23 +174,28 @@ class Compiler
     fun_register = fresh_register
     @last_used = fresh_register
 
-    "load(#{fun_register}, $fun, 2)\n"\
-    "alloc(#{@last_used}, 3)\n"\
-    "mov_int($t, 7)\n"\
-    "store(#{@last_used}, 0, $t)\n"\
-    "store(#{@last_used}, 1, $arg)\n"\
-    "store(#{@last_used}, 2, #{fun_register})"
+    generate_output([
+      load(fun_register, '$fun', 2),
+      alloc(@last_used, 3),
+      mov_int(TEMP_REGISTER, CONS_TAG),
+      store(@last_used, 0, TEMP_REGISTER),
+      store(@last_used, 1, '$arg'),
+      store(@last_used, 2, fun_register)
+    ])
   end
 
   def compile_isolated_constructor_with(code:)
     @last_used = fresh_register
-    "alloc(#{@last_used}, 1)\n"\
-    "mov_int($t, #{code})\n"\
-    "store(#{@last_used}, 0, $t)"
+
+    generate_output([
+      alloc(@last_used, 1),
+      mov_int(TEMP_REGISTER, code),
+      store(@last_used, 0, TEMP_REGISTER)
+    ])
   end
 
   def fetch_from_context(variable)
-    @arg == variable ? '$arg' : @env[variable] || "@G_#{variable}"
+    @arg == variable ? '$arg' : @env[variable] || global_register(variable)
   end
 
   def fresh_register
@@ -155,17 +205,109 @@ class Compiler
       fresh = @r_index
       @r_index += 1
 
-      "$r#{fresh}"
+      local_register("r#{fresh}")
     end
   end
 
   def fresh_routine_name
     @routine_index += 1
 
-    "rtn_#{@routine_index}"
+    "#{ROUTINE_PREFIX}#{@routine_index}"
   end
 
   def unsafe_printing?(instructions)
-    instructions[1][1] == 'unsafePrintInt' || instructions[1][1] == 'unsafePrintChar'
+    instructions[1][1] == UNSAFE_PRINT_INT || instructions[1][1] == UNSAFE_PRINT_CHAR
+  end
+
+  def generate_output(instructions)
+    instructions.join("\n")
+  end
+
+  def global_register(register_name)
+    "#{GLOBAL_REGISTER_PREFIX}G_#{register_name}"
+  end
+
+  def local_register(register_name)
+    "#{LOCAL_REGISTER_PREFIX}#{register_name}"
+  end
+
+  def label(label_name)
+    "#{label_name}:"
+  end
+
+  def mov_reg(to_register, from_register)
+    "mov_reg(#{to_register}, #{from_register})"
+  end
+
+  def mov_int(register, integer)
+    "mov_int(#{register}, #{integer})"
+  end
+
+  def mov_label(register, label_name)
+    "mov_label(#{register}, #{label_name})"
+  end
+
+  def alloc(register, number_of_slots)
+    "alloc(#{register}, #{number_of_slots})"
+  end
+
+  def load(to_register, from_register, from_register_slot_index)
+    "load(#{to_register}, #{from_register}, #{from_register_slot_index})"
+  end
+
+  def store(to_register, to_register_slot_index, register_to_store)
+    "store(#{to_register}, #{to_register_slot_index}, #{register_to_store})"
+  end
+
+  def print(register)
+    "print(#{register})"
+  end
+
+  def print_char(register)
+    "print_char(#{register})"
+  end
+
+  def jump(label_to_jump_to)
+    "jump(#{label_to_jump_to})"
+  end
+
+  def jump_eq(register_1, register_2, label_to_jump_to)
+    "jump_eq(#{register_1}, #{register_2}, #{label_to_jump_to})"
+  end
+
+  def jump_lt(register_1, register_2, label_to_jump_to)
+    "jump_lt(#{register_1}, #{register_2}, #{label_to_jump_to})"
+  end
+
+  def add(result_registry, register_1, register_2)
+    "add(#{result_registry}, #{register_1}, #{register_2})"
+  end
+
+  def sub(result_registry, register_1, register_2)
+    "sub(#{result_registry}, #{register_1}, #{register_2})"
+  end
+
+  def mul(result_registry, register_1, register_2)
+    "mul(#{result_registry}, #{register_1}, #{register_2})"
+  end
+
+  def div(result_registry, register_1, register_2)
+    "div(#{result_registry}, #{register_1}, #{register_2})"
+  end
+
+  def mod(result_registry, register_1, register_2)
+    "mod(#{result_registry}, #{register_1}, #{register_2})"
+  end
+
+  def call(label)
+    "call(#{label})"
+  end
+
+  def icall(register)
+    "icall(#{register})"
+  end
+
+  def return_from_routine
+    'return()'
   end
 end

@@ -66,7 +66,7 @@ task :compile, [:filename] do |_, args|
   parse_result = FlechaParser.new.parse(tokens)
 
   info "Compiling '#{args[:filename]}'..."
-  mamarracho = Compiler.new.call(parse_result)
+  mamarracho = Compiler.new.compile(parse_result)
 
   file = Tempfile.new('foo')
 

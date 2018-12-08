@@ -279,6 +279,6 @@ describe Compiler do
   end
 
   def assert_expression_is_compiled_to(expression, expected)
-    expect(subject.call(expression)).to eq(expected)
+    expect(subject.compile(expression)).to eq(expected)
   end
 end
