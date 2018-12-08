@@ -63,7 +63,7 @@ class Compiler
   def compile_def(result, instructions)
     result.concat(generate_output([
       compile([instructions[2]], result),
-      mov_reg("@G_#{instructions[1]}", @last_used),
+      mov_reg(global_user_register(instructions[1]), @last_used),
       ''
     ]))
   end
