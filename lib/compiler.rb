@@ -22,51 +22,48 @@ class Compiler
   UNSAFE_PRINT_CHAR = 'unsafePrintChar'
 
   def initialize
-    @r_index = 0
+    @register_index = 0
     @routine_index = 0
+
     @env = {}
-    @fun_env = {}
+    @function_env = {}
   end
 
   def compile(program, compiled = '')
     program.reduce(compiled) do |result, instructions|
-      if instructions[0] == 'True'
+      instruction_token = instructions[0]
+
+      if instruction_token == 'True'
         compile_isolated_constructor_with tag: TRUE_TAG
-      elsif instructions[0] == 'False'
+      elsif instruction_token == 'False'
         compile_isolated_constructor_with tag: FALSE_TAG
-      elsif instructions[0] == 'Nil'
+      elsif instruction_token == 'Nil'
         compile_isolated_constructor_with tag: NIL_TAG
-      elsif instructions[0] == 'ExprChar'
-        compile_primitive(CHAR_TAG, instructions[1].ord)
-      elsif instructions[0] == 'ExprNumber'
-        compile_primitive(INT_TAG, instructions[1])
-      elsif instructions[0] == 'ExprVar'
+      elsif instruction_token == 'ExprChar'
+        instruction_value = instructions[1]
+        compile_primitive(CHAR_TAG, instruction_value.ord)
+      elsif instruction_token == 'ExprNumber'
+        instruction_value = instructions[1]
+        compile_primitive(INT_TAG, instruction_value)
+      elsif instruction_token == 'ExprVar'
         compile_variable(instructions)
-      elsif instructions[0] == 'ExprLet'
+      elsif instruction_token == 'ExprLet'
         compile_let(instructions, result)
-      elsif instructions[0] == 'Def'
-        compile_def(result, instructions)
-      elsif instructions[0] == 'ExprLambda'
+      elsif instruction_token == 'Def'
+        compile_def(instructions, result)
+      elsif instruction_token == 'ExprLambda'
         compile_lambda(instructions, result)
-      elsif instructions[0] == 'ExprApply'
+      elsif instruction_token == 'ExprApply'
         compile_application(instructions, result)
-      elsif instructions[0] == 'ExprConstructor'
+      elsif instruction_token == 'ExprConstructor'
         compile([["ExprLambda", "#_x", ["ExprLambda", "#_y", %w(ExprCons Cons)]]], result)
-      elsif instructions[0] == 'ExprCons'
+      elsif instruction_token == 'ExprCons'
         compile_cons
       end
     end
   end
 
   private
-
-  def compile_def(result, instructions)
-    result.concat(generate_output([
-      compile([instructions[2]], result),
-      mov_reg(global_user_register(instructions[1]), @last_used),
-      ''
-    ]))
-  end
 
   def compile_primitive(primitive_tag, primitive_value)
     @last_used = fresh_register
@@ -78,6 +75,50 @@ class Compiler
       mov_int(TEMP_REGISTER, primitive_value),
       store(@last_used, 1, TEMP_REGISTER)
     ])
+  end
+
+  def compile_isolated_constructor_with(tag:)
+    @last_used = fresh_register
+
+    generate_output([
+      alloc(@last_used, 1),
+      mov_int(TEMP_REGISTER, tag),
+      store(@last_used, 0, TEMP_REGISTER)
+    ])
+  end
+
+  def compile_def(instructions, result)
+    result.concat(generate_output([
+      compile([instructions[2]], result),
+      mov_reg(global_user_register(instructions[1]), @last_used),
+      ''
+    ]))
+  end
+
+  def compile_variable(instructions)
+    variable_name = instructions[1]
+
+    if variable_name == UNSAFE_PRINT_INT
+      loaded = fresh_register
+
+      generate_output([
+        load(loaded, @last_used, 1),
+        print(loaded)
+      ])
+    elsif variable_name == UNSAFE_PRINT_CHAR
+      loaded = fresh_register
+
+      generate_output([
+        load(loaded, @last_used, 1),
+        print_char(loaded)
+      ])
+    elsif @function_env.has_key?(variable_name)
+      @last_used = fresh_register
+      load(@last_used, local_function_register, @function_env[variable_name])
+    else
+      @last_used = fresh_register
+      mov_reg(@last_used, fetch_from_context(variable_name))
+    end
   end
 
   def compile_let(instructions, result)
@@ -92,33 +133,34 @@ class Compiler
     ])
   end
 
-  def compile_variable(instructions)
-    if instructions[1] == UNSAFE_PRINT_INT
-      loaded = fresh_register
+  def compile_lambda(instructions, result)
+    lambda_parameter = instructions[1]
+    lambda_body = instructions[2]
+    routine_name = fresh_routine_name
+    routine_register = fresh_register
 
-      generate_output([
-        load(loaded, @last_used, 1),
-        print(loaded)
-      ])
-    elsif instructions[1] == UNSAFE_PRINT_CHAR
-      loaded = fresh_register
+    @function_env[@arg] = @function_env.size + 2 if @arg
+    @arg = lambda_parameter
 
-      generate_output([
-        load(loaded, @last_used, 1),
-        print_char(loaded)
-      ])
-    elsif @fun_env.has_key?(instructions[1])
-      @last_used = fresh_register
-      load(@last_used, local_function_register, @fun_env[instructions[1]])
-    else
-      @last_used = fresh_register
-      mov_reg(@last_used, fetch_from_context(instructions[1]))
-    end
+    generate_output([
+      alloc(routine_register, 3),
+      mov_int(TEMP_REGISTER, CLOSURE_TAG),
+      store(routine_register, 0, TEMP_REGISTER),
+      label(routine_name),
+      mov_reg(local_function_register, global_function_register),
+      mov_reg(local_arguments_register, global_arguments_register),
+      compile([lambda_body], result),
+      mov_reg(local_result_register, @last_used),
+      mov_reg(global_result_register, local_result_register),
+      return_from_routine,
+      mov_label(TEMP_REGISTER, routine_name),
+      store(routine_register, 1, TEMP_REGISTER),
+      store(routine_register, 2, local_arguments_register)
+    ])
   end
 
   def compile_application(instructions, result)
     if unsafe_printing?(instructions)
-
       generate_output([
         compile([instructions[2]], result),
         compile([instructions[1]], result)
@@ -146,30 +188,6 @@ class Compiler
     end
   end
 
-  def compile_lambda(instructions, result)
-    routine_name = fresh_routine_name
-    routine_register = fresh_register
-    @fun_env[@arg] = @fun_env.size + 2 if @arg
-    @arg = instructions[1]
-
-    generate_output([
-      alloc(routine_register, 3),
-      mov_int(TEMP_REGISTER, CLOSURE_TAG),
-      store(routine_register, 0, TEMP_REGISTER),
-      label(routine_name),
-      mov_reg(local_function_register, global_function_register),
-      mov_reg(local_arguments_register, global_arguments_register),
-      compile([instructions[2]], result),
-      mov_reg(local_result_register, @last_used),
-      mov_reg(global_result_register, local_result_register),
-      return_from_routine,
-      mov_label(TEMP_REGISTER, routine_name),
-      store(routine_register, 1, TEMP_REGISTER),
-      store(routine_register, 2, local_arguments_register)
-    ])
-  end
-
-
   def compile_cons
     fun_register = fresh_register
     @last_used = fresh_register
@@ -184,16 +202,6 @@ class Compiler
     ])
   end
 
-  def compile_isolated_constructor_with(tag:)
-    @last_used = fresh_register
-
-    generate_output([
-      alloc(@last_used, 1),
-      mov_int(TEMP_REGISTER, tag),
-      store(@last_used, 0, TEMP_REGISTER)
-    ])
-  end
-
   def fetch_from_context(variable)
     @arg == variable ? local_arguments_register : @env[variable] || global_user_register(variable)
   end
@@ -202,8 +210,8 @@ class Compiler
     if @let
       '$temp'
     else
-      fresh = @r_index
-      @r_index += 1
+      fresh = @register_index
+      @register_index += 1
 
       local_register("r#{fresh}")
     end

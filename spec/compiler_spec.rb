@@ -124,6 +124,10 @@ describe Compiler do
         "mov_reg(@G_t, $r0)\n"
       )
     end
+
+    it 'returns the compiled code' do
+
+    end
   end
 
   context 'Lambda' do
@@ -239,45 +243,6 @@ describe Compiler do
         "store($r0, 2, $arg)"
       )
     end
-
-    # it 'returns the compiled code' do
-    #   assert_expression_is_compiled_to([['ExprApply', %w'ExprConstructor Cons', ['ExprNumber', 42]]],
-    #
-    #   # Cons (solo)
-    #   "alloc($r0, 3)\n"\
-    #   "mov_int($t, 7)\n"\
-    #   "store($r0, 0, $t)"\
-    #
-    #   # 42
-    #   "alloc($r1, 2)\n"\
-    #     "mov_int($t, 1)\n"\
-    #     "store($r1, 0, $t)\n"\
-    #     "mov_int($t, 42)\n"\
-    #     "store($r1, 1, $t)\n"\
-    #
-    #   # \x -> Cons 42 x
-    #   "rtn_1:\n"\
-    #   "mov_reg($fun, @fun)\n"\
-    #   "mov_reg($arg, @arg)\n"\
-    #
-    #   "mov_reg($r0, $arg)\n"\
-    #
-    #   "mov_reg($res, $r0)\n"\
-    #   "mov_reg(@res, $res)\n"\
-    #   "return()\n"
-    #
-    #   # \x -> (\y -> Cons x y)
-    #   # \y -> Cons 42 y
-    #   # Cons 42 Nil
-    #
-    #
-    #     "alloc($r2, 3)\n"\
-    #     "mov_int($t, 7)\n"\
-    #     "store($r2, 0, $t)\n"\
-    #     "store($r2, 1, $r0)\n"\
-    #     "store($r2, 2, $r1)\n"
-    #   )
-    # end
   end
 
   def assert_expression_is_compiled_to(expression, expected)
