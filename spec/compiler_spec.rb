@@ -1,7 +1,7 @@
 require 'spec_helper'
-require_relative '../lib/compilador'
+require_relative '../lib/compiler'
 
-describe Compilador do
+describe Compiler do
   context 'empty program' do
     it 'returns an empty string' do
       assert_expression_is_compiled_to [], ''
