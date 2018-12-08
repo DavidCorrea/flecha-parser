@@ -31,41 +31,21 @@ class Compiler
   def compile(program, compiled = '')
     program.reduce(compiled) do |result, instructions|
       if instructions[0] == 'True'
-        compile_isolated_constructor_with code: TRUE_TAG
+        compile_isolated_constructor_with tag: TRUE_TAG
       elsif instructions[0] == 'False'
-        compile_isolated_constructor_with code: FALSE_TAG
+        compile_isolated_constructor_with tag: FALSE_TAG
       elsif instructions[0] == 'Nil'
-        compile_isolated_constructor_with code: NIL_TAG
+        compile_isolated_constructor_with tag: NIL_TAG
       elsif instructions[0] == 'ExprChar'
-        @last_used = fresh_register
-
-        generate_output([
-          alloc(@last_used, 2),
-          mov_int(TEMP_REGISTER, CHAR_TAG),
-          store(@last_used, 0, TEMP_REGISTER),
-          mov_int(TEMP_REGISTER, instructions[1].ord),
-          store(@last_used, 1, TEMP_REGISTER)
-        ])
+        compile_primitive(CHAR_TAG, instructions[1].ord)
       elsif instructions[0] == 'ExprNumber'
-        @last_used = fresh_register
-
-        generate_output([
-          alloc(@last_used, 2),
-          mov_int(TEMP_REGISTER, INT_TAG),
-          store(@last_used, 0, TEMP_REGISTER),
-          mov_int(TEMP_REGISTER, instructions[1]),
-          store(@last_used, 1, TEMP_REGISTER)
-        ])
+        compile_primitive(INT_TAG, instructions[1])
       elsif instructions[0] == 'ExprVar'
         compile_variable(instructions)
       elsif instructions[0] == 'ExprLet'
         compile_let(instructions, result)
       elsif instructions[0] == 'Def'
-        result.concat(generate_output([
-          compile([instructions[2]], result),
-          mov_reg("@G_#{instructions[1]}", @last_used),
-          ''
-        ]))
+        compile_def(result, instructions)
       elsif instructions[0] == 'ExprLambda'
         compile_lambda(instructions, result)
       elsif instructions[0] == 'ExprApply'
@@ -79,6 +59,26 @@ class Compiler
   end
 
   private
+
+  def compile_def(result, instructions)
+    result.concat(generate_output([
+      compile([instructions[2]], result),
+      mov_reg("@G_#{instructions[1]}", @last_used),
+      ''
+    ]))
+  end
+
+  def compile_primitive(primitive_tag, primitive_value)
+    @last_used = fresh_register
+
+    generate_output([
+      alloc(@last_used, 2),
+      mov_int(TEMP_REGISTER, primitive_tag),
+      store(@last_used, 0, TEMP_REGISTER),
+      mov_int(TEMP_REGISTER, primitive_value),
+      store(@last_used, 1, TEMP_REGISTER)
+    ])
+  end
 
   def compile_let(instructions, result)
     @let = true
@@ -109,7 +109,7 @@ class Compiler
       ])
     elsif @fun_env.has_key?(instructions[1])
       @last_used = fresh_register
-      load(@last_used, '$fun', @fun_env[instructions[1]])
+      load(@last_used, local_function_register, @fun_env[instructions[1]])
     else
       @last_used = fresh_register
       mov_reg(@last_used, fetch_from_context(instructions[1]))
@@ -138,10 +138,10 @@ class Compiler
         compiled_closure,
         compiled_param,
         load(routine_register, closure_register, 1),
-        mov_reg('@fun', closure_register),
-        mov_reg('@arg', param_register),
+        mov_reg(global_function_register, closure_register),
+        mov_reg(global_arguments_register, param_register),
         icall(routine_register),
-        mov_reg(fresh_register, '@res')
+        mov_reg(fresh_register, global_result_register)
       ])
     end
   end
@@ -157,15 +157,15 @@ class Compiler
       mov_int(TEMP_REGISTER, CLOSURE_TAG),
       store(routine_register, 0, TEMP_REGISTER),
       label(routine_name),
-      mov_reg('$fun', '@fun'),
-      mov_reg('$arg', '@arg'),
+      mov_reg(local_function_register, global_function_register),
+      mov_reg(local_arguments_register, global_arguments_register),
       compile([instructions[2]], result),
-      mov_reg('$res', @last_used),
-      mov_reg('@res', '$res'),
+      mov_reg(local_result_register, @last_used),
+      mov_reg(global_result_register, local_result_register),
       return_from_routine,
       mov_label(TEMP_REGISTER, routine_name),
       store(routine_register, 1, TEMP_REGISTER),
-      store(routine_register, 2, '$arg')
+      store(routine_register, 2, local_arguments_register)
     ])
   end
 
@@ -175,27 +175,27 @@ class Compiler
     @last_used = fresh_register
 
     generate_output([
-      load(fun_register, '$fun', 2),
+      load(fun_register, local_function_register, 2),
       alloc(@last_used, 3),
       mov_int(TEMP_REGISTER, CONS_TAG),
       store(@last_used, 0, TEMP_REGISTER),
-      store(@last_used, 1, '$arg'),
+      store(@last_used, 1, local_arguments_register),
       store(@last_used, 2, fun_register)
     ])
   end
 
-  def compile_isolated_constructor_with(code:)
+  def compile_isolated_constructor_with(tag:)
     @last_used = fresh_register
 
     generate_output([
       alloc(@last_used, 1),
-      mov_int(TEMP_REGISTER, code),
+      mov_int(TEMP_REGISTER, tag),
       store(@last_used, 0, TEMP_REGISTER)
     ])
   end
 
   def fetch_from_context(variable)
-    @arg == variable ? '$arg' : @env[variable] || global_register(variable)
+    @arg == variable ? local_arguments_register : @env[variable] || global_user_register(variable)
   end
 
   def fresh_register
@@ -223,12 +223,36 @@ class Compiler
     instructions.join("\n")
   end
 
-  def global_register(register_name)
+  def global_user_register(register_name)
     "#{GLOBAL_REGISTER_PREFIX}G_#{register_name}"
   end
 
   def local_register(register_name)
     "#{LOCAL_REGISTER_PREFIX}#{register_name}"
+  end
+
+  def global_result_register
+    "#{GLOBAL_REGISTER_PREFIX}#{RESULT_POSTFIX}"
+  end
+
+  def local_result_register
+    "#{LOCAL_REGISTER_PREFIX}#{RESULT_POSTFIX}"
+  end
+
+  def global_function_register
+    "#{GLOBAL_REGISTER_PREFIX}#{FUNCTION_POSTFIX}"
+  end
+
+  def local_function_register
+    "#{LOCAL_REGISTER_PREFIX}#{FUNCTION_POSTFIX}"
+  end
+
+  def global_arguments_register
+    "#{GLOBAL_REGISTER_PREFIX}#{ARGUMENTS_POSTFIX}"
+  end
+
+  def local_arguments_register
+    "#{LOCAL_REGISTER_PREFIX}#{ARGUMENTS_POSTFIX}"
   end
 
   def label(label_name)
@@ -279,24 +303,24 @@ class Compiler
     "jump_lt(#{register_1}, #{register_2}, #{label_to_jump_to})"
   end
 
-  def add(result_registry, register_1, register_2)
-    "add(#{result_registry}, #{register_1}, #{register_2})"
+  def add(result_register, register_1, register_2)
+    "add(#{result_register}, #{register_1}, #{register_2})"
   end
 
-  def sub(result_registry, register_1, register_2)
-    "sub(#{result_registry}, #{register_1}, #{register_2})"
+  def sub(result_register, register_1, register_2)
+    "sub(#{result_register}, #{register_1}, #{register_2})"
   end
 
-  def mul(result_registry, register_1, register_2)
-    "mul(#{result_registry}, #{register_1}, #{register_2})"
+  def mul(result_register, register_1, register_2)
+    "mul(#{result_register}, #{register_1}, #{register_2})"
   end
 
-  def div(result_registry, register_1, register_2)
-    "div(#{result_registry}, #{register_1}, #{register_2})"
+  def div(result_register, register_1, register_2)
+    "div(#{result_register}, #{register_1}, #{register_2})"
   end
 
-  def mod(result_registry, register_1, register_2)
-    "mod(#{result_registry}, #{register_1}, #{register_2})"
+  def mod(result_register, register_1, register_2)
+    "mod(#{result_register}, #{register_1}, #{register_2})"
   end
 
   def call(label)
