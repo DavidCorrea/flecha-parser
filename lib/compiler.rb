@@ -106,22 +106,18 @@ class Compiler
     if variable_name == UNSAFE_PRINT_INT
       loaded = fresh_register
 
-      generate_output([
-        load(loaded, @last_used, 1),
-        print(loaded)
-      ])
+      generate_output([load(loaded, @last_used, 1), print(loaded)])
     elsif variable_name == UNSAFE_PRINT_CHAR
       loaded = fresh_register
 
-      generate_output([
-        load(loaded, @last_used, 1),
-        print_char(loaded)
-      ])
-    elsif @function_env.has_key?(variable_name)
+      generate_output([load(loaded, @last_used, 1), print_char(loaded)])
+    elsif @arg
       @last_used = fresh_register
-      load(@last_used, local_function_register, @function_env[variable_name])
+
+      mov_reg(@last_used, fetch_from_context(variable_name))
     else
       @last_used = fresh_register
+
       mov_reg(@last_used, fetch_from_context(variable_name))
     end
   end
@@ -160,13 +156,13 @@ class Compiler
     routine_name = fresh_routine_name
     routine_register = fresh_register
 
-    @function_env[@arg] = @function_env.size + 2 if @arg
     @arg = lambda_parameter
 
     generate_output([
       alloc(routine_register, 3),
       mov_int(TEMP_REGISTER, CLOSURE_TAG),
       store(routine_register, 0, TEMP_REGISTER),
+
       label(routine_name),
       mov_reg(local_function_register, global_function_register),
       mov_reg(local_arguments_register, global_arguments_register),
@@ -174,9 +170,9 @@ class Compiler
       mov_reg(local_result_register, @last_used),
       mov_reg(global_result_register, local_result_register),
       return_from_routine,
+
       mov_label(TEMP_REGISTER, routine_name),
-      store(routine_register, 1, TEMP_REGISTER),
-      store(routine_register, 2, local_arguments_register)
+      store(routine_register, 1, TEMP_REGISTER)
     ])
   end
 
@@ -228,12 +224,12 @@ class Compiler
 
     if closer_variable_declaration_depth
       @env[scoped_variable(variable, closer_variable_declaration_depth)]
+    elsif @env[variable]
+      @env[variable]
+    elsif @arg
+      '$arg'
     else
-      if @arg == variable
-        local_arguments_register
-      else
-        @env[variable] || global_user_register(variable)
-      end
+      global_user_register(variable)
     end
   end
 
