@@ -151,18 +151,12 @@ class Compiler
   end
 
   def compile_lambda(instructions, result)
-    lambda_parameter = instructions[1]
+    @arg = instructions[1]
     lambda_body = instructions[2]
     routine_name = fresh_routine_name
-    routine_register = fresh_register
 
-    @arg = lambda_parameter
-
-    generate_output([
-      alloc(routine_register, 3),
-      mov_int(TEMP_REGISTER, CLOSURE_TAG),
-      store(routine_register, 0, TEMP_REGISTER),
-
+    compiled_routine = generate_output([
+      jump("end_#{routine_name}_definition"),
       label(routine_name),
       mov_reg(local_function_register, global_function_register),
       mov_reg(local_arguments_register, global_arguments_register),
@@ -170,10 +164,20 @@ class Compiler
       mov_reg(local_result_register, @last_used),
       mov_reg(global_result_register, local_result_register),
       return_from_routine,
+      label("end_#{routine_name}_definition")
+    ])
 
+    @last_used = routine_register = fresh_register
+
+    compiled_routine_register = generate_output([
+      alloc(routine_register, 3),
+      mov_int(TEMP_REGISTER, CLOSURE_TAG),
+      store(routine_register, 0, TEMP_REGISTER),
       mov_label(TEMP_REGISTER, routine_name),
       store(routine_register, 1, TEMP_REGISTER)
     ])
+
+    compiled_routine.concat(compiled_routine_register)
   end
 
   def compile_application(instructions, result)
