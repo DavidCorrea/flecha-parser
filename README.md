@@ -8,8 +8,9 @@ Analizador sintáctico para el lenguaje de programación funcional Flecha - Pars
 - `gem install bundle`
 - `bundle install`
 
-## Aclaraciones
-- Para poder usar el Interprete dentro de las tareas, puede que sea necesario regenerar el `mamarracho`
+## Aclaraciones para usar las tareas de Compile/Interpret
+- Para poder usar el Interprete dentro de las tareas, se debe compilar `mamarracho.cpp` bajo el nombre `mamarracho` en la carpeta `lib/interpreter/`:
+- `g++ -o ./lib/interpreter/mamarracho ./lib/interpreter/mamarracho.cpp`
 
 ## Tareas disponibles
 - `rspec .` - Corre la suite de specs.
