@@ -111,14 +111,17 @@ class Compiler
       loaded = fresh_register
 
       generate_output([load(loaded, @last_used, 1), print_char(loaded)])
-    elsif @arg == variable_name
+    elsif @env[variable_name]
       @last_used = fresh_register
 
-      mov_reg(@last_used, fetch_from_context(variable_name))
-    elsif @function_env[variable_name]
-      @last_used = fresh_register
+      if @arg == variable_name
+        mov_reg(@last_used, fetch_from_context(variable_name))
+      else
+        @env[variable_name] = @last_used
+        @free_variables << variable_name
 
-      load(@last_used, local_function_register, @function_env[variable_name])
+        load(@last_used, local_function_register, @free_variables.size + 2)
+      end
     else
       @last_used = fresh_register
 
@@ -155,10 +158,11 @@ class Compiler
   end
 
   def compile_lambda(instructions, result)
-    @function_env[@arg] = @function_env.size + 2 if @arg
-    @arg = instructions[1]
+    @arg = argument = instructions[1]
     lambda_body = instructions[2]
     routine_name = fresh_routine_name
+    @env[argument] = local_arguments_register
+    @free_variables = []
 
     compiled_routine = generate_output([
       jump("end_#{routine_name}_definition"),
@@ -169,10 +173,12 @@ class Compiler
       mov_reg(local_result_register, @last_used),
       mov_reg(global_result_register, local_result_register),
       return_from_routine,
-      label("end_#{routine_name}_definition")
+      label("end_#{routine_name}_definition"),
+      ''
     ])
 
     @last_used = routine_register = fresh_register
+    @last_routine_register = routine_register
 
     compiled_routine_register = generate_output([
       alloc(routine_register, 3),
@@ -182,7 +188,14 @@ class Compiler
       store(routine_register, 1, TEMP_REGISTER)
     ])
 
-    compiled_routine.concat(compiled_routine_register)
+    compiled_variables = @free_variables.each_with_index.map do |variable, index|
+      generate_output([
+          mov_reg(TEMP_REGISTER, fetch_from_context(variable)),
+          store(routine_register, index + 2, TEMP_REGISTER)
+      ])
+    end
+
+    compiled_routine.concat(compiled_routine_register.concat(generate_output(compiled_variables)))
   end
 
   def compile_application(instructions, result)
@@ -196,7 +209,7 @@ class Compiler
       param = instructions[2]
 
       compiled_closure = compile([closure], result)
-      closure_register = @last_used
+      closure_register = @last_routine_register
       compiled_param = compile([param], result)
       param_register = @last_used
 
@@ -235,10 +248,6 @@ class Compiler
       @env[scoped_variable(variable, closer_variable_declaration_depth)]
     elsif @env[variable]
       @env[variable]
-    elsif @arg
-      '$arg'
-    elsif @function_env[variable]
-      @function_env[variable]
     else
       global_user_register(variable)
     end
