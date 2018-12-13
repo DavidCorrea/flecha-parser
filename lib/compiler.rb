@@ -1,3 +1,5 @@
+require_relative 'environment'
+
 class Compiler
 
   TEMP_REGISTER = '$t'
@@ -24,11 +26,10 @@ class Compiler
 
   def initialize
     @register_index = 0
-    @scope_depth = 0
+    @temporary_register_index = 0
     @routine_index = 0
 
-    @env = {}
-    @function_env = {}
+    @environment = Environment.new
   end
 
   def compile(program, compiled = '')
@@ -111,21 +112,21 @@ class Compiler
       loaded = fresh_register
 
       generate_output([load(loaded, @last_used, 1), print_char(loaded)])
-    elsif @env[variable_name]
-      @last_used = fresh_register
-
-      if @arg == variable_name
-        mov_reg(@last_used, fetch_from_context(variable_name))
-      else
-        @env[variable_name] = @last_used
-        @free_variables << variable_name
-
-        load(@last_used, local_function_register, @free_variables.size + 2)
-      end
     else
       @last_used = fresh_register
 
-      mov_reg(@last_used, fetch_from_context(variable_name))
+      if @compiling_routine
+        if @environment.lambda_argument_in_current_scope == variable_name
+          mov_reg(@last_used, fetch_from_context(variable_name))
+        else
+          @environment.add_to_current_scope(variable_name, @last_used)
+          @environment.add_free_variable_to_current_scope(variable_name)
+
+          load(@last_used, local_function_register, @environment.free_variables_in_current_scope.size + 1)
+        end
+      else
+        mov_reg(@last_used, fetch_from_context(variable_name))
+      end
     end
   end
 
@@ -134,22 +135,13 @@ class Compiler
     variable_definition = instructions[2]
     let_body = instructions[3]
 
-    @current_scoped_variable = variable
+    @compiling_let = true
     compiled_variable_definition = compile([variable_definition], result)
-    scoped_variable = scoped_variable(variable, @scope_depth)
-    @current_scoped_variable = nil
+    @compiling_let = false
 
-    if variable != '_'
-      @env[scoped_variable] = @last_used
-      @scope_depth += 1
-    end
-
+    @environment.create_scope_with(variable, @last_used)
     compiled_let_body = compile([let_body], result)
-
-    if variable != '_'
-      @scope_depth -= 1
-      @env.delete(scoped_variable)
-    end
+    @environment.remove_current_scope
 
     generate_output([
       compiled_variable_definition,
@@ -158,11 +150,12 @@ class Compiler
   end
 
   def compile_lambda(instructions, result)
-    @arg = argument = instructions[1]
+    argument = instructions[1]
     lambda_body = instructions[2]
     routine_name = fresh_routine_name
-    @env[argument] = local_arguments_register
-    @free_variables = []
+    @environment.create_scope_with(argument, local_arguments_register)
+    @environment.add_lambda_argument_to_current_scope(argument)
+    @compiling_routine = true
 
     compiled_routine = generate_output([
       jump("end_#{routine_name}_definition"),
@@ -177,8 +170,8 @@ class Compiler
       ''
     ])
 
+    @compiling_routine = false
     @last_used = routine_register = fresh_register
-    @last_routine_register = routine_register
 
     compiled_routine_register = generate_output([
       alloc(routine_register, 3),
@@ -188,14 +181,15 @@ class Compiler
       store(routine_register, 1, TEMP_REGISTER)
     ])
 
-    compiled_variables = @free_variables.each_with_index.map do |variable, index|
+    compiled_routine_variables = @environment.free_variables_in_current_scope.each_with_index.map do |variable, index|
       generate_output([
           mov_reg(TEMP_REGISTER, fetch_from_context(variable)),
           store(routine_register, index + 2, TEMP_REGISTER)
       ])
     end
 
-    compiled_routine.concat(compiled_routine_register.concat(generate_output(compiled_variables)))
+    @environment.remove_current_scope
+    compiled_routine.concat(compiled_routine_register.concat(generate_output(compiled_routine_variables)))
   end
 
   def compile_application(instructions, result)
@@ -209,11 +203,12 @@ class Compiler
       param = instructions[2]
 
       compiled_closure = compile([closure], result)
-      closure_register = @last_routine_register
+      closure_register = @last_used
       compiled_param = compile([param], result)
       param_register = @last_used
 
-      routine_register = fresh_register
+      @last_used = routine_register = fresh_register
+      @last_used = result_register = fresh_register
 
       generate_output([
         compiled_closure,
@@ -222,7 +217,7 @@ class Compiler
         mov_reg(global_function_register, closure_register),
         mov_reg(global_arguments_register, param_register),
         icall(routine_register),
-        mov_reg(fresh_register, global_result_register)
+        mov_reg(result_register, global_result_register)
       ])
     end
   end
@@ -242,20 +237,19 @@ class Compiler
   end
 
   def fetch_from_context(variable)
-    closer_variable_declaration_depth = @scope_depth.downto(0).find { |depth| @env.has_key?(scoped_variable(variable, depth)) }
-
-    if closer_variable_declaration_depth
-      @env[scoped_variable(variable, closer_variable_declaration_depth)]
-    elsif @env[variable]
-      @env[variable]
+    if @environment.has_variable_defined_in_current_scope?(variable)
+      @environment.variable_latest_value(variable)
     else
       global_user_register(variable)
     end
   end
 
   def fresh_register
-    if @current_scoped_variable
-      temporary_register("#{@current_scoped_variable}_#{@scope_depth}")
+    if @compiling_let
+      fresh = @temporary_register_index
+      @temporary_register_index += 1
+
+      temporary_register(fresh)
     else
       fresh = @register_index
       @register_index += 1

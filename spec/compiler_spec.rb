@@ -115,12 +115,12 @@ describe Compiler do
   context 'Let' do
     it 'returns the compiled code' do
       assert_expression_is_compiled_to([["Def", "t", ["ExprLet", "x", ["ExprNumber", 1], %w(ExprVar x)]]],
-        "alloc($tmp_x_0, 2)\n"\
+        "alloc($tmp_0, 2)\n"\
         "mov_int($t, 1)\n"\
-        "store($tmp_x_0, 0, $t)\n"\
+        "store($tmp_0, 0, $t)\n"\
         "mov_int($t, 1)\n"\
-        "store($tmp_x_0, 1, $t)\n"\
-        "mov_reg($r0, $tmp_x_0)\n"\
+        "store($tmp_0, 1, $t)\n"\
+        "mov_reg($r0, $tmp_0)\n"\
         "mov_reg(@G_t, $r0)\n"
       )
     end
@@ -129,59 +129,54 @@ describe Compiler do
   context 'Lambda' do
     it 'returns the compiled code' do
       assert_expression_is_compiled_to([["ExprLambda", "y", %w(ExprVar y)]],
-        "alloc($r0, 3)\n"\
-        "mov_int($t, 3)\n"\
-        "store($r0, 0, $t)\n"\
+        "jump(end_rtn_1_definition)\n"\
         "rtn_1:\n"\
         "mov_reg($fun, @fun)\n"\
         "mov_reg($arg, @arg)\n"\
-        "mov_reg($r1, $arg)\n"\
-        "mov_reg($res, $r1)\n"\
+        "mov_reg($r0, $arg)\n"\
+        "mov_reg($res, $r0)\n"\
         "mov_reg(@res, $res)\n"\
         "return()\n"\
+        "end_rtn_1_definition:\n"\
+        "alloc($r1, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r1, 0, $t)\n"\
         "mov_label($t, rtn_1)\n"\
-        "store($r0, 1, $t)\n"\
-        "store($r0, 2, $arg)"
+        "store($r1, 1, $t)"
       )
     end
 
     it 'returns the compiled code for doble lambda' do
       assert_expression_is_compiled_to([["ExprLambda", "x", ["ExprLambda", "y", %w(ExprVar x)]]],
-        "alloc($r0, 3)\n"\
-        "mov_int($t, 3)\n"\
-        "store($r0, 0, $t)\n"\
-        ""\
+        "jump(end_rtn_1_definition)\n"\
         "rtn_1:\n"\
         "mov_reg($fun, @fun)\n"\
         "mov_reg($arg, @arg)\n"\
-        "alloc($r1, 3)\n"\
-        "mov_int($t, 3)\n"\
-        "store($r1, 0, $t)\n"\
-        ""\
+        "jump(end_rtn_2_definition)\n"\
         "rtn_2:\n"\
         "mov_reg($fun, @fun)\n"\
         "mov_reg($arg, @arg)\n"\
-        "load($r2, $fun, 2)\n"\
-        "mov_reg($res, $r2)\n"\
+        "load($r0, $fun, 2)\n"\
+        "mov_reg($res, $r0)\n"\
         "mov_reg(@res, $res)\n"\
         "return()\n"\
-        ""\
+        "end_rtn_2_definition:\n"\
+        "alloc($r1, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r1, 0, $t)\n"\
         "mov_label($t, rtn_2)\n"\
-        "store($r1, 1, $t)\n"\
-        "store($r1, 2, $arg)\n"\
-        "mov_reg($res, $r2)\n"\
+        "store($r1, 1, $t)mov_reg($t, $r0)\n"\
+        "store($r1, 2, $t)\n"\
+        "mov_reg($res, $r1)\n"\
         "mov_reg(@res, $res)\n"\
         "return()\n"\
-        ""\
+        "end_rtn_1_definition:\n"\
+        "alloc($r2, 3)\n"\
+        "mov_int($t, 3)\n"\
+        "store($r2, 0, $t)\n"\
         "mov_label($t, rtn_1)\n"\
-        "store($r0, 1, $t)\n"\
-        "store($r0, 2, $arg)"
+        "store($r2, 1, $t)"
       )
-    end
-
-    it 'returns the compiled code for constructor with params' do
-      assert_expression_is_compiled_to([["Def", "test", ["ExprLambda", "x", ["ExprLambda", "y", ["ExprLet", "_", ["ExprApply", %w(ExprVar unsafePrintChar), %w(ExprVar x)], ["ExprApply", %w(ExprVar unsafePrintChar), %w(ExprVar y)]]]]]],
-                                       "something")
     end
   end
 
