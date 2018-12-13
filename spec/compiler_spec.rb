@@ -178,6 +178,11 @@ describe Compiler do
         "store($r0, 2, $arg)"
       )
     end
+
+    it 'returns the compiled code for constructor with params' do
+      assert_expression_is_compiled_to([["Def", "test", ["ExprLambda", "x", ["ExprLambda", "y", ["ExprLet", "_", ["ExprApply", %w(ExprVar unsafePrintChar), %w(ExprVar x)], ["ExprApply", %w(ExprVar unsafePrintChar), %w(ExprVar y)]]]]]],
+                                       "something")
+    end
   end
 
   context 'Application - Common case' do

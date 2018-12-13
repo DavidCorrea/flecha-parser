@@ -111,10 +111,14 @@ class Compiler
       loaded = fresh_register
 
       generate_output([load(loaded, @last_used, 1), print_char(loaded)])
-    elsif @arg
+    elsif @arg == variable_name
       @last_used = fresh_register
 
       mov_reg(@last_used, fetch_from_context(variable_name))
+    elsif @function_env[variable_name]
+      @last_used = fresh_register
+
+      load(@last_used, local_function_register, @function_env[variable_name])
     else
       @last_used = fresh_register
 
@@ -151,6 +155,7 @@ class Compiler
   end
 
   def compile_lambda(instructions, result)
+    @function_env[@arg] = @function_env.size + 2 if @arg
     @arg = instructions[1]
     lambda_body = instructions[2]
     routine_name = fresh_routine_name
@@ -232,6 +237,8 @@ class Compiler
       @env[variable]
     elsif @arg
       '$arg'
+    elsif @function_env[variable]
+      @function_env[variable]
     else
       global_user_register(variable)
     end
